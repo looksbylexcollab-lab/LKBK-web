@@ -8,6 +8,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Legacy tokens kept for backward compat
         pearl: {
           50:  '#FDFCFA',
           100: '#FAF8F5',
@@ -29,13 +30,39 @@ const config: Config = {
           light:   '#2E2E2C',
           muted:   '#6B6B67',
         },
+        // New warm cream design system
+        cream: {
+          50:  '#FDFCFB',
+          100: '#F8F5F0',
+          200: '#F2EDE6',
+          300: '#EAE4DC',
+          400: '#DDD6CC',
+          500: '#C5BDB3',
+        },
+        bark: {
+          DEFAULT: '#1C1916',
+          light:   '#2E2B27',
+          muted:   '#7A7268',
+          subtle:  '#A09690',
+        },
+        tan: {
+          200: '#C4B49E',
+          300: '#A0896E',
+          400: '#8B7355',
+          500: '#7A6448',
+        },
       },
       fontFamily: {
-        sans: ['Calibri', 'Candara', "'Segoe UI'", "'Trebuchet MS'", 'sans-serif'],
+        sans:  ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-playfair)', "'Playfair Display'", 'Georgia', 'serif'],
       },
       letterSpacing: {
         luxury: '0.25em',
         wide:   '0.15em',
+      },
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.5rem',
       },
     },
   },

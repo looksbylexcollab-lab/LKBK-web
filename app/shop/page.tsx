@@ -102,30 +102,29 @@ export default function ShopPage() {
       <Header />
 
       {/* Hero search */}
-      <section className="bg-charcoal">
-        <div className="max-w-3xl mx-auto px-8 py-24 text-center">
-          <p className="label-caps text-gold-300 mb-4">Visual Search</p>
-          <div className="w-10 h-px bg-gold-300 mx-auto mb-8" />
-          <h1 className="text-4xl md:text-5xl font-light text-pearl-100 tracking-wide mb-4">
+      <section className="bg-cream-200 border-b border-cream-400">
+        <div className="max-w-3xl mx-auto px-8 py-20 text-center">
+          <p className="label-caps mb-4">Visual Search</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-bark mb-4">
             Discover any product
           </h1>
-          <p className="text-pearl-400 text-sm font-light mb-12">
+          <p className="text-bark-muted text-sm mb-10 font-sans">
             Paste a link from Instagram, TikTok, or any website — or upload a photo.
           </p>
 
-          <form className="flex gap-0">
+          <form className="flex gap-0 rounded-full overflow-hidden border border-cream-500 bg-white shadow-sm">
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Paste a URL…"
-              className="flex-1 bg-white/5 border border-white/20 border-r-0 px-6 py-4 text-pearl-100 placeholder-pearl-400/50 focus:outline-none focus:border-gold-300 transition-colors text-sm font-light"
+              className="flex-1 bg-transparent px-6 py-4 text-bark placeholder-bark-subtle focus:outline-none text-sm font-sans"
             />
             <button
               type="submit"
               onClick={handleSaveFromUrl}
               disabled={loading || saving || !url.trim()}
-              className="bg-white/10 hover:bg-white/20 disabled:opacity-40 text-pearl-100 label-caps px-6 py-4 transition-colors whitespace-nowrap border border-white/20 border-r-0"
+              className="bg-cream-300 hover:bg-cream-400 disabled:opacity-40 text-bark text-xs uppercase tracking-[0.15em] px-5 py-4 transition-colors whitespace-nowrap font-sans border-l border-cream-400"
             >
               {saving ? '…' : 'Save'}
             </button>
@@ -133,7 +132,7 @@ export default function ShopPage() {
               type="button"
               onClick={handleUrlSearch}
               disabled={loading || saving || !url.trim()}
-              className="bg-gold-300 hover:bg-gold-200 disabled:opacity-40 text-charcoal label-caps px-6 py-4 transition-colors whitespace-nowrap"
+              className="bg-bark hover:bg-bark-light disabled:opacity-40 text-white text-xs uppercase tracking-[0.15em] px-6 py-4 transition-colors whitespace-nowrap font-sans rounded-r-full"
             >
               {loading ? '…' : 'Find Similar'}
             </button>
@@ -142,7 +141,7 @@ export default function ShopPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
-            className="mt-4 label-caps text-pearl-400 hover:text-gold-300 transition-colors"
+            className="mt-5 text-xs text-bark-muted hover:text-bark transition-colors font-sans uppercase tracking-widest"
           >
             or upload a photo
           </button>
@@ -153,11 +152,11 @@ export default function ShopPage() {
               <img
                 src={previewUrl}
                 alt="Uploaded photo"
-                className="w-40 h-40 object-cover border border-white/20"
+                className="w-40 h-40 object-cover rounded-2xl border border-cream-400"
               />
               <button
                 onClick={() => { setPreviewUrl(null); setProducts(null); setError(null) }}
-                className="label-caps text-pearl-400/60 hover:text-pearl-400 transition-colors text-xs"
+                className="text-xs text-bark-subtle hover:text-bark-muted transition-colors font-sans uppercase tracking-widest"
               >
                 clear
               </button>
@@ -170,30 +169,30 @@ export default function ShopPage() {
       {scrapedProduct && (
         <section className="max-w-2xl mx-auto px-8 py-16">
           <div className="flex items-center gap-4 mb-8">
-            <div className="h-px flex-1 bg-pearl-300" />
-            <p className="label-caps text-charcoal-muted">Product found</p>
-            <div className="h-px flex-1 bg-pearl-300" />
+            <div className="h-px flex-1 bg-cream-400" />
+            <p className="label-caps">Product found</p>
+            <div className="h-px flex-1 bg-cream-400" />
           </div>
-          <div className="flex gap-6 border border-pearl-200 p-6">
+          <div className="flex gap-6 cream-card border border-cream-400 p-6">
             {scrapedProduct.imageUrl ? (
-              <img src={scrapedProduct.imageUrl} alt={scrapedProduct.name} className="w-32 h-32 object-cover flex-shrink-0" />
+              <img src={scrapedProduct.imageUrl} alt={scrapedProduct.name} className="w-32 h-32 object-cover rounded-xl flex-shrink-0" />
             ) : (
-              <div className="w-32 h-32 bg-pearl-100 flex items-center justify-center text-pearl-300 text-3xl flex-shrink-0">◇</div>
+              <div className="w-32 h-32 bg-cream-400 rounded-xl flex items-center justify-center text-bark-subtle text-3xl flex-shrink-0">◇</div>
             )}
             <div className="flex flex-col justify-between flex-1 min-w-0">
               <div>
                 {scrapedProduct.brand && (
-                  <p className="label-caps text-charcoal-muted mb-1">{scrapedProduct.brand}</p>
+                  <p className="label-caps mb-1">{scrapedProduct.brand}</p>
                 )}
-                <p className="text-charcoal font-light text-lg leading-snug mb-2">{scrapedProduct.name}</p>
+                <p className="text-bark font-bold text-lg leading-snug mb-2 font-sans">{scrapedProduct.name}</p>
                 {scrapedProduct.estimatedPrice && (
-                  <p className="text-gold-400 text-sm">{scrapedProduct.estimatedPrice}</p>
+                  <p className="text-tan-400 text-sm font-sans">{scrapedProduct.estimatedPrice}</p>
                 )}
               </div>
               <div className="flex gap-3 mt-4">
                 <button
                   onClick={() => setSaveTarget(scrapedProduct)}
-                  className="bg-charcoal hover:bg-charcoal-light text-pearl-100 label-caps px-6 py-3 transition-colors"
+                  className="btn-dark px-6 py-2 text-xs"
                 >
                   Save Product
                 </button>
@@ -202,7 +201,7 @@ export default function ShopPage() {
                     href={scrapedProduct.shopUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="border border-pearl-300 hover:border-charcoal text-charcoal label-caps px-6 py-3 transition-colors"
+                    className="btn-outline px-6 py-2 text-xs"
                   >
                     Shop Now
                   </a>
@@ -216,23 +215,23 @@ export default function ShopPage() {
       {/* Results */}
       <section className="max-w-6xl mx-auto px-8 py-20 min-h-[40vh]">
         {(loading || saving) && (
-          <div className="flex flex-col items-center justify-center py-28 text-charcoal-muted">
-            <div className="w-8 h-8 border border-gold-300 border-t-transparent rounded-full animate-spin mb-6" />
-            <p className="label-caps text-gold-400">{saving ? 'Fetching product…' : 'Scanning image…'}</p>
+          <div className="flex flex-col items-center justify-center py-28 text-bark-muted">
+            <div className="w-8 h-8 border-2 border-bark border-t-transparent rounded-full animate-spin mb-6" />
+            <p className="label-caps">{saving ? 'Fetching product…' : 'Scanning image…'}</p>
           </div>
         )}
 
         {error && (
           <div className="text-center py-28">
-            <p className="text-sm text-red-400 mb-2">{error}</p>
-            <p className="label-caps text-charcoal-muted">Try a different URL or upload an image directly.</p>
+            <p className="text-sm text-red-500 mb-2 font-sans">{error}</p>
+            <p className="label-caps">Try a different URL or upload an image directly.</p>
           </div>
         )}
 
         {products && products.length === 0 && (
-          <div className="text-center py-28 text-charcoal-muted">
-            <div className="w-10 h-10 border border-pearl-300 flex items-center justify-center mx-auto mb-6 text-xl">◇</div>
-            <p className="text-sm font-light mb-2">No products found</p>
+          <div className="text-center py-28 text-bark-muted">
+            <div className="w-10 h-10 border border-cream-500 rounded-xl flex items-center justify-center mx-auto mb-6 text-xl">◇</div>
+            <p className="text-sm mb-2 font-sans">No products found</p>
             <p className="label-caps">Try a clearer image or a direct product page URL.</p>
           </div>
         )}
@@ -240,28 +239,28 @@ export default function ShopPage() {
         {products && products.length > 0 && (
           <>
             <div className="flex items-center gap-4 mb-10">
-              <div className="h-px flex-1 bg-pearl-300" />
-              <p className="label-caps text-charcoal-muted">
+              <div className="h-px flex-1 bg-cream-400" />
+              <p className="label-caps">
                 {products.length} result{products.length !== 1 ? 's' : ''}
                 {products[0]?.searchQuery ? ` — ${products[0].searchQuery}` : ''}
               </p>
-              <div className="h-px flex-1 bg-pearl-300" />
+              <div className="h-px flex-1 bg-cream-400" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((p, i) => (
                 <ProductCard key={i} product={p} onSave={setSaveTarget} />
               ))}
             </div>
-            <p className="label-caps text-charcoal-muted text-center mt-12">
+            <p className="label-caps text-center mt-12">
               Prices are estimates · LKBK earns a commission on qualifying purchases
             </p>
           </>
         )}
 
         {!loading && !saving && !products && !error && !scrapedProduct && (
-          <div className="text-center py-28 text-charcoal-muted">
-            <div className="w-10 h-10 border border-pearl-300 flex items-center justify-center mx-auto mb-6 text-xl">◈</div>
-            <p className="text-sm font-light mb-2">Paste a link to get started</p>
+          <div className="text-center py-28 text-bark-muted">
+            <div className="w-10 h-10 border border-cream-500 rounded-xl flex items-center justify-center mx-auto mb-6 text-xl">◈</div>
+            <p className="text-sm mb-2 font-sans">Paste a link to get started</p>
             <p className="label-caps">Works with Instagram, TikTok, Amazon, and more.</p>
           </div>
         )}

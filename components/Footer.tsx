@@ -2,40 +2,40 @@ import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer className="bg-charcoal text-pearl-300 mt-24">
+    <footer className="bg-bark text-cream-300 mt-0">
       <div className="max-w-6xl mx-auto px-8 py-16 grid grid-cols-1 md:grid-cols-3 gap-12">
         <div>
-          <p className="text-base font-light tracking-luxury uppercase text-pearl-100 mb-3">LKBK</p>
-          <p className="text-xs text-pearl-400 leading-relaxed">
+          <p className="text-lg font-bold tracking-wider text-white mb-3 font-sans">LKBK</p>
+          <p className="text-xs text-cream-500 leading-relaxed font-sans">
             AI-powered shopping discovery.<br />Shop smarter. Earn cashback.
           </p>
         </div>
 
         <div>
-          <p className="label-caps text-pearl-400 mb-4">Explore</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-cream-400 mb-4 font-sans">Explore</p>
           <div className="flex flex-col gap-2">
-            <Link href="/shop" className="text-xs text-pearl-300 hover:text-gold-300 transition-colors">Discover</Link>
-            <Link href="/wishlists" className="text-xs text-pearl-300 hover:text-gold-300 transition-colors">Wishlists</Link>
-            <Link href="/collections" className="text-xs text-pearl-300 hover:text-gold-300 transition-colors">Collections</Link>
-            <Link href="/about" className="text-xs text-pearl-300 hover:text-gold-300 transition-colors">About</Link>
+            <Link href="/shop" className="text-xs text-cream-300 hover:text-white transition-colors font-sans">Discover</Link>
+            <Link href="/wishlists" className="text-xs text-cream-300 hover:text-white transition-colors font-sans">Wishlists</Link>
+            <Link href="/collections" className="text-xs text-cream-300 hover:text-white transition-colors font-sans">Collections</Link>
+            <Link href="/about" className="text-xs text-cream-300 hover:text-white transition-colors font-sans">About</Link>
           </div>
         </div>
 
         <div>
-          <p className="label-caps text-pearl-400 mb-4">Legal</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-cream-400 mb-4 font-sans">Legal</p>
           <div className="flex flex-col gap-2">
-            <Link href="/privacy" className="text-xs text-pearl-300 hover:text-gold-300 transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="text-xs text-pearl-300 hover:text-gold-300 transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="text-xs text-cream-300 hover:text-white transition-colors font-sans">Privacy Policy</Link>
+            <Link href="/terms" className="text-xs text-cream-300 hover:text-white transition-colors font-sans">Terms of Service</Link>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-charcoal-light">
+      <div className="border-t border-bark-light">
         <div className="max-w-6xl mx-auto px-8 py-5 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-pearl-400">© {new Date().getFullYear()} LKBK. All rights reserved.</p>
-          <p className="text-xs text-pearl-400">
+          <p className="text-xs text-cream-500 font-sans">© {new Date().getFullYear()} LKBK. All rights reserved.</p>
+          <p className="text-xs text-cream-500 font-sans">
             Affiliate links powered by{' '}
-            <a href="https://skimlinks.com" target="_blank" rel="noopener noreferrer" className="hover:text-gold-300 transition-colors">
+            <a href="https://skimlinks.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
               Skimlinks
             </a>
           </p>

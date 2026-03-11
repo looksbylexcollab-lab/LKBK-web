@@ -1,7 +1,20 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
+import { Inter, Playfair_Display } from 'next/font/google'
 import { AuthProvider } from '@/components/AuthProvider'
 import './globals.css'
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  display: 'swap',
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'LKBK — Shop Smarter',
@@ -27,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
-      <body style={{ fontFamily: "Calibri, Candara, 'Segoe UI', 'Trebuchet MS', sans-serif" }}>
+      <body className={`${playfair.variable} ${inter.variable}`}>
         <AuthProvider>
           {children}
         </AuthProvider>

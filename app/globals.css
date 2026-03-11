@@ -4,55 +4,34 @@
 
 @layer base {
   body {
-    @apply antialiased bg-pearl-100 text-charcoal;
-    font-family: Calibri, Candara, 'Segoe UI', 'Trebuchet MS', sans-serif;
+    @apply antialiased bg-cream-200 text-bark;
+    font-family: var(--font-inter), Inter, system-ui, sans-serif;
   }
 
   h1, h2, h3, h4 {
-    font-family: Calibri, Candara, 'Segoe UI', 'Trebuchet MS', sans-serif;
-    font-weight: 300;
-    letter-spacing: 0.02em;
+    font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
 }
 
 @layer utilities {
-  .pearl-surface {
-    background: linear-gradient(
-      135deg,
-      #ffffff    0%,
-      #faf8f5   25%,
-      #f7f2ea   50%,
-      #faf8f5   75%,
-      #ffffff  100%
-    );
-  }
-
-  .gold-shimmer {
-    background: linear-gradient(90deg, #C9A84C 0%, #E8CA6A 40%, #D4AF37 60%, #C9A84C 100%);
-    background-size: 200% auto;
-  }
-
-  .luxury-border {
-    border: 1px solid #E8CA6A;
-  }
-
-  .text-gold {
-    color: #D4AF37;
-  }
-
   .label-caps {
-    @apply text-xs uppercase tracking-[0.2em] text-charcoal-muted;
+    @apply text-xs uppercase tracking-[0.2em] text-tan-400;
+    font-family: var(--font-inter), Inter, system-ui, sans-serif;
   }
-}
 
-/* Subtle pearl shimmer animation on hero */
-@keyframes pearl-drift {
-  0%, 100% { background-position: 0% 50%; }
-  50%       { background-position: 100% 50%; }
-}
+  .cream-card {
+    @apply bg-cream-300 rounded-2xl;
+  }
 
-.pearl-animated {
-  background: linear-gradient(135deg, #ffffff, #faf8f5, #f0e8d8, #e8d5a0, #f0e8d8, #faf8f5, #ffffff);
-  background-size: 400% 400%;
-  animation: pearl-drift 12s ease infinite;
+  .btn-dark {
+    @apply bg-bark text-white rounded-full px-8 py-3 text-sm font-medium hover:bg-bark-light transition-colors;
+    font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  }
+
+  .btn-outline {
+    @apply border border-bark text-bark rounded-full px-8 py-3 text-sm font-medium hover:bg-bark hover:text-white transition-colors;
+    font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  }
 }

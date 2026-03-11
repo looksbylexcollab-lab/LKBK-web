@@ -16,23 +16,23 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white border-b border-gold-200 sticky top-0 z-40">
+    <header className="bg-white border-b border-cream-400 sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-8 h-16 flex items-center justify-between">
 
-        <Link href="/" className="text-base font-light tracking-luxury uppercase text-charcoal hover:text-gold-400 transition-colors">
+        <Link href="/" className="text-lg font-bold tracking-wider text-bark font-sans hover:text-bark-muted transition-colors">
           LKBK
         </Link>
 
-        <nav className="flex items-center gap-10">
-          <Link href="/shop" className="label-caps hover:text-charcoal transition-colors">
+        <nav className="flex items-center gap-8">
+          <Link href="/shop" className="text-sm text-bark-muted hover:text-bark transition-colors font-sans">
             Discover
           </Link>
           {user && (
             <>
-              <Link href="/wishlists" className="label-caps hover:text-charcoal transition-colors">
+              <Link href="/wishlists" className="text-sm text-bark-muted hover:text-bark transition-colors font-sans">
                 Wishlists
               </Link>
-              <Link href="/collections" className="label-caps hover:text-charcoal transition-colors">
+              <Link href="/collections" className="text-sm text-bark-muted hover:text-bark transition-colors font-sans">
                 Collections
               </Link>
             </>
@@ -43,24 +43,24 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => setMenuOpen((o) => !o)}
-                  className="w-8 h-8 rounded-full border border-gold-300 flex items-center justify-center text-gold-400 text-xs hover:bg-gold-50 transition-colors"
+                  className="w-8 h-8 rounded-full bg-cream-300 border border-cream-400 flex items-center justify-center text-bark text-xs font-medium hover:bg-cream-400 transition-colors font-sans"
                 >
                   {user.email?.[0]?.toUpperCase() ?? 'U'}
                 </button>
                 {menuOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                    <div className="absolute right-0 top-12 bg-white border border-gold-100 shadow-lg w-52 z-50">
-                      <div className="px-5 py-3 border-b border-pearl-200">
-                        <p className="text-xs text-charcoal-muted truncate">{user.email}</p>
+                    <div className="absolute right-0 top-12 bg-white border border-cream-400 shadow-lg rounded-xl w-52 z-50 overflow-hidden">
+                      <div className="px-5 py-3 border-b border-cream-300">
+                        <p className="text-xs text-bark-muted truncate font-sans">{user.email}</p>
                       </div>
-                      <Link href="/wishlists" onClick={() => setMenuOpen(false)} className="block px-5 py-3 label-caps hover:bg-pearl-100 transition-colors">
+                      <Link href="/wishlists" onClick={() => setMenuOpen(false)} className="block px-5 py-3 text-sm text-bark hover:bg-cream-200 transition-colors font-sans">
                         Wishlists
                       </Link>
-                      <Link href="/collections" onClick={() => setMenuOpen(false)} className="block px-5 py-3 label-caps hover:bg-pearl-100 transition-colors">
+                      <Link href="/collections" onClick={() => setMenuOpen(false)} className="block px-5 py-3 text-sm text-bark hover:bg-cream-200 transition-colors font-sans">
                         Collections
                       </Link>
-                      <button onClick={signOut} className="w-full text-left px-5 py-3 label-caps text-red-400 hover:bg-red-50 transition-colors border-t border-pearl-200">
+                      <button onClick={signOut} className="w-full text-left px-5 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-cream-300 font-sans">
                         Sign Out
                       </button>
                     </div>
@@ -70,7 +70,7 @@ export default function Header() {
             ) : (
               <Link
                 href="/login"
-                className="label-caps border border-gold-300 text-gold-500 px-6 py-2 hover:bg-gold-50 transition-colors"
+                className="btn-dark text-sm px-6 py-2"
               >
                 Sign In
               </Link>
