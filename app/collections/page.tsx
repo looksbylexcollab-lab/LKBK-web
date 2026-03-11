@@ -46,20 +46,33 @@ function CollectionMosaic({ images }: { images: string[] }) {
     )
   }
 
-  // 3+ images: large left (~60%) + 2 stacked right (~40%)
+  if (images.length === 3) {
+    // large left + 2 stacked right
+    return (
+      <div className="flex w-full h-full gap-0.5">
+        <div className="relative" style={{ flex: '1.5' }}>
+          <Image src={images[0]} alt="" fill className="object-cover" unoptimized />
+        </div>
+        <div className="flex flex-col gap-0.5" style={{ flex: '1' }}>
+          <div className="relative flex-1">
+            <Image src={images[1]} alt="" fill className="object-cover" unoptimized />
+          </div>
+          <div className="relative flex-1">
+            <Image src={images[2]} alt="" fill className="object-cover" unoptimized />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 4 images: 2x2 grid
   return (
-    <div className="flex w-full h-full gap-0.5">
-      <div className="relative" style={{ flex: '1.5' }}>
-        <Image src={images[0]} alt="" fill className="object-cover" unoptimized />
-      </div>
-      <div className="flex flex-col gap-0.5" style={{ flex: '1' }}>
-        <div className="relative flex-1">
-          <Image src={images[1]} alt="" fill className="object-cover" unoptimized />
+    <div className="grid grid-cols-2 grid-rows-2 gap-0.5 w-full h-full">
+      {images.map((img, i) => (
+        <div key={i} className="relative">
+          <Image src={img} alt="" fill className="object-cover" unoptimized />
         </div>
-        <div className="relative flex-1">
-          <Image src={images[2]} alt="" fill className="object-cover" unoptimized />
-        </div>
-      </div>
+      ))}
     </div>
   )
 }
@@ -95,7 +108,7 @@ export default function CollectionsPage() {
         cover_images: c.collection_items
           .map((i) => i.product?.image_url)
           .filter(Boolean)
-          .slice(0, 3) as string[],
+          .slice(0, 4) as string[],
       }))
     )
     setFetching(false)
