@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -142,6 +142,16 @@ export default function WishlistDetailPage() {
   const [copied, setCopied] = useState(false)
   const [toggling, setToggling] = useState(false)
 
+  // Add product modal
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
+  const [scraping, setScraping] = useState(false)
+  const [scraped, setScraped] = useState<{ name: string; brand: string | null; price: string | null; imageUrl: string | null; shopUrl: string | null } | null>(null)
+  const [scrapeError, setScrapeError] = useState<string | null>(null)
+  const [addSaving, setAddSaving] = useState(false)
+  const [addSaved, setAddSaved] = useState(false)
+  const urlInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
   }, [user, loading, router])
@@ -149,6 +159,44 @@ export default function WishlistDetailPage() {
   useEffect(() => {
     if (user && id) fetchWishlist()
   }, [user, id])
+
+  useEffect(() => {
+    if (showAddModal) {
+      setTimeout(() => urlInputRef.current?.focus(), 50)
+    } else {
+      setUrlInput(''); setScraped(null); setScrapeError(null); setAddSaved(false)
+    }
+  }, [showAddModal])
+
+  async function handleScrape() {
+    if (!urlInput.trim()) return
+    setScraping(true); setScraped(null); setScrapeError(null)
+    try {
+      const res = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlInput.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) setScrapeError(data.error ?? 'Could not extract product info from that URL.')
+      else setScraped({ name: data.name ?? 'Unknown Product', brand: data.brand ?? null, price: data.price ?? null, imageUrl: data.imageUrl ?? null, shopUrl: data.shopUrl ?? urlInput.trim() })
+    } catch { setScrapeError('Network error. Please check your connection.') }
+    finally { setScraping(false) }
+  }
+
+  async function handleAddToWishlist() {
+    if (!scraped || !user || !wishlist) return
+    setAddSaving(true)
+    const { data: prod, error } = await supabase
+      .from('products')
+      .insert({ user_id: user.id, name: scraped.name, brand: scraped.brand, price: scraped.price, image_url: scraped.imageUrl, shop_url: scraped.shopUrl })
+      .select('id').single()
+    if (error || !prod) { setAddSaving(false); return }
+    await supabase.from('wishlist_items').insert({ wishlist_id: wishlist.id, product_id: prod.id })
+    setAddSaved(true); setAddSaving(false)
+    await fetchWishlist()
+    setTimeout(() => setShowAddModal(false), 800)
+  }
 
   async function fetchWishlist() {
     const { data } = await supabase
@@ -232,6 +280,13 @@ export default function WishlistDetailPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="w-10 h-10 bg-bark hover:bg-bark-light text-white rounded-full flex items-center justify-center transition-colors text-xl leading-none"
+              aria-label="Add product"
+            >
+              +
+            </button>
             {wishlist.is_shared && wishlist.share_token && (
               <button
                 onClick={copyShareLink}
@@ -351,6 +406,67 @@ export default function WishlistDetailPage() {
         )}
       </main>
       <Footer />
+
+      {/* Add Product Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center pt-3 pb-1 md:hidden">
+              <div className="w-10 h-1 bg-cream-400 rounded-full" />
+            </div>
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-cream-300">
+              <h2 className="text-lg font-bold text-bark">Add Product</h2>
+              <button onClick={() => setShowAddModal(false)} className="w-8 h-8 flex items-center justify-center text-bark-muted hover:text-bark rounded-full hover:bg-cream-200 transition-colors text-xl leading-none">×</button>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-bark-muted mb-3 font-sans">Paste a product URL from any website, Instagram, or TikTok.</p>
+              <div className="flex gap-2 mb-4">
+                <input
+                  ref={urlInputRef}
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => { setUrlInput(e.target.value); setScraped(null); setScrapeError(null) }}
+                  placeholder="https://..."
+                  className="flex-1 bg-cream-200 border border-cream-400 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-bark text-bark font-sans"
+                  onKeyDown={(e) => e.key === 'Enter' && handleScrape()}
+                />
+                <button onClick={handleScrape} disabled={scraping || !urlInput.trim()} className="btn-dark px-5 py-2.5 text-xs disabled:opacity-40 whitespace-nowrap">
+                  {scraping ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                      Finding…
+                    </span>
+                  ) : 'Find Product'}
+                </button>
+              </div>
+              {scrapeError && <p className="text-sm text-red-500 mb-4 font-sans">{scrapeError}</p>}
+              {scraped && (
+                <div className="bg-cream-200 rounded-2xl p-4 flex gap-4 mb-5">
+                  {scraped.imageUrl ? (
+                    <img src={scraped.imageUrl} alt={scraped.name} className="w-20 h-20 object-cover rounded-xl flex-shrink-0" />
+                  ) : (
+                    <div className="w-20 h-20 bg-cream-400 rounded-xl flex items-center justify-center text-cream-500 text-2xl flex-shrink-0">◇</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    {scraped.brand && <p className="text-xs text-tan-400 uppercase tracking-wide font-sans mb-0.5" style={{ fontSize: '9px' }}>{scraped.brand}</p>}
+                    <p className="text-sm font-semibold text-bark leading-snug line-clamp-2 font-sans">{scraped.name}</p>
+                    {scraped.price && <p className="text-xs text-bark-muted mt-1 font-sans">{scraped.price}</p>}
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={handleAddToWishlist}
+                disabled={!scraped || addSaving || addSaved}
+                className={`w-full py-3 rounded-xl font-semibold text-sm transition-all font-sans ${
+                  addSaved ? 'bg-green-500 text-white' : scraped ? 'bg-bark hover:bg-bark-light text-white' : 'bg-cream-300 text-bark-subtle cursor-not-allowed'
+                }`}
+              >
+                {addSaved ? '✓ Added to wishlist!' : addSaving ? 'Saving…' : `Add to ${wishlist.name}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
