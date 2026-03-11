@@ -15,10 +15,12 @@ interface Product extends SaveProduct {
 export default function ShopPage() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [products, setProducts] = useState<Product[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saveTarget, setSaveTarget] = useState<SaveProduct | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [scrapedProduct, setScrapedProduct] = useState<SaveProduct | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function search(body: object) {
@@ -45,7 +47,41 @@ export default function ShopPage() {
   async function handleUrlSearch(e: React.FormEvent) {
     e.preventDefault()
     if (!url.trim()) return
+    setScrapedProduct(null)
     await search({ url: url.trim() })
+  }
+
+  async function handleSaveFromUrl(e: React.FormEvent) {
+    e.preventDefault()
+    if (!url.trim()) return
+    setSaving(true)
+    setError(null)
+    setScrapedProduct(null)
+    setProducts(null)
+    try {
+      const res = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        setError(data.error ?? 'Could not extract product info from that URL.')
+      } else {
+        setScrapedProduct({
+          name: data.name ?? 'Unknown Product',
+          brand: data.brand ?? null,
+          estimatedPrice: data.price ?? null,
+          imageUrl: data.imageUrl ?? null,
+          shopUrl: data.shopUrl ?? url.trim(),
+          category: null,
+        })
+      }
+    } catch {
+      setError('Network error. Please check your connection.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -77,7 +113,7 @@ export default function ShopPage() {
             Paste a link from Instagram, TikTok, or any website — or upload a photo.
           </p>
 
-          <form onSubmit={handleUrlSearch} className="flex gap-0">
+          <form className="flex gap-0">
             <input
               type="url"
               value={url}
@@ -87,10 +123,19 @@ export default function ShopPage() {
             />
             <button
               type="submit"
-              disabled={loading || !url.trim()}
-              className="bg-gold-300 hover:bg-gold-200 disabled:opacity-40 text-charcoal label-caps px-8 py-4 transition-colors whitespace-nowrap"
+              onClick={handleSaveFromUrl}
+              disabled={loading || saving || !url.trim()}
+              className="bg-white/10 hover:bg-white/20 disabled:opacity-40 text-pearl-100 label-caps px-6 py-4 transition-colors whitespace-nowrap border border-white/20 border-r-0"
             >
-              {loading ? '…' : 'Search'}
+              {saving ? '…' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={handleUrlSearch}
+              disabled={loading || saving || !url.trim()}
+              className="bg-gold-300 hover:bg-gold-200 disabled:opacity-40 text-charcoal label-caps px-6 py-4 transition-colors whitespace-nowrap"
+            >
+              {loading ? '…' : 'Find Similar'}
             </button>
           </form>
 
@@ -121,12 +166,59 @@ export default function ShopPage() {
         </div>
       </section>
 
+      {/* Scraped product direct save */}
+      {scrapedProduct && (
+        <section className="max-w-2xl mx-auto px-8 py-16">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="h-px flex-1 bg-pearl-300" />
+            <p className="label-caps text-charcoal-muted">Product found</p>
+            <div className="h-px flex-1 bg-pearl-300" />
+          </div>
+          <div className="flex gap-6 border border-pearl-200 p-6">
+            {scrapedProduct.imageUrl ? (
+              <img src={scrapedProduct.imageUrl} alt={scrapedProduct.name} className="w-32 h-32 object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-32 h-32 bg-pearl-100 flex items-center justify-center text-pearl-300 text-3xl flex-shrink-0">◇</div>
+            )}
+            <div className="flex flex-col justify-between flex-1 min-w-0">
+              <div>
+                {scrapedProduct.brand && (
+                  <p className="label-caps text-charcoal-muted mb-1">{scrapedProduct.brand}</p>
+                )}
+                <p className="text-charcoal font-light text-lg leading-snug mb-2">{scrapedProduct.name}</p>
+                {scrapedProduct.estimatedPrice && (
+                  <p className="text-gold-400 text-sm">{scrapedProduct.estimatedPrice}</p>
+                )}
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => setSaveTarget(scrapedProduct)}
+                  className="bg-charcoal hover:bg-charcoal-light text-pearl-100 label-caps px-6 py-3 transition-colors"
+                >
+                  Save Product
+                </button>
+                {scrapedProduct.shopUrl && (
+                  <a
+                    href={scrapedProduct.shopUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="border border-pearl-300 hover:border-charcoal text-charcoal label-caps px-6 py-3 transition-colors"
+                  >
+                    Shop Now
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Results */}
       <section className="max-w-6xl mx-auto px-8 py-20 min-h-[40vh]">
-        {loading && (
+        {(loading || saving) && (
           <div className="flex flex-col items-center justify-center py-28 text-charcoal-muted">
             <div className="w-8 h-8 border border-gold-300 border-t-transparent rounded-full animate-spin mb-6" />
-            <p className="label-caps text-gold-400">Scanning image…</p>
+            <p className="label-caps text-gold-400">{saving ? 'Fetching product…' : 'Scanning image…'}</p>
           </div>
         )}
 
@@ -166,7 +258,7 @@ export default function ShopPage() {
           </>
         )}
 
-        {!loading && !products && !error && (
+        {!loading && !saving && !products && !error && !scrapedProduct && (
           <div className="text-center py-28 text-charcoal-muted">
             <div className="w-10 h-10 border border-pearl-300 flex items-center justify-center mx-auto mb-6 text-xl">◈</div>
             <p className="text-sm font-light mb-2">Paste a link to get started</p>
