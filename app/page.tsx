@@ -19,7 +19,7 @@ export default function HomePage() {
               <span className="italic text-tan-400">find it later.</span>
             </h1>
             <p className="text-bark-muted text-base leading-relaxed max-w-md mb-8 font-sans">
-              Your personal lookbook for everything you want. Paste a link, snap a photo — our AI identifies products instantly. Organize into collections, share wishlists, earn cashback.
+              Your personal lookbook for everything you want. Paste a link, snap a photo, share directly from Instagram or TikTok — our AI identifies products instantly. Organize into collections, share wishlists, earn cashback.
             </p>
             <div className="flex flex-wrap items-center gap-4 mb-6">
               <Link href="/shop" className="btn-dark px-8 py-3.5 text-sm inline-flex items-center gap-2">
