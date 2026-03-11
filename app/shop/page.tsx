@@ -4,16 +4,11 @@ import { useState, useRef } from 'react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ProductCard from '@/components/ProductCard'
+import SaveModal from '@/components/SaveModal'
+import type { SaveProduct } from '@/components/SaveModal'
 
-interface Product {
-  name: string
-  brand: string | null
-  category: string | null
-  estimatedPrice: string | null
-  description: string | null
+interface Product extends SaveProduct {
   isExactMatch: boolean
-  imageUrl: string | null
-  shopUrl: string | null
   searchQuery: string | null
 }
 
@@ -22,6 +17,7 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState<Product[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [saveTarget, setSaveTarget] = useState<SaveProduct | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function search(body: object) {
@@ -58,11 +54,9 @@ export default function ShopPage() {
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-
     const reader = new FileReader()
     reader.onload = async () => {
-      const dataUrl = reader.result as string
-      const imageBase64 = dataUrl.split(',')[1]
+      const imageBase64 = (reader.result as string).split(',')[1]
       await search({ imageBase64 })
     }
     reader.readAsDataURL(file)
@@ -103,13 +97,7 @@ export default function ShopPage() {
           >
             or upload a photo
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
         </div>
       </section>
 
@@ -139,11 +127,11 @@ export default function ShopPage() {
           <>
             <p className="text-sm text-gray-500 mb-8">
               Found {products.length} product{products.length !== 1 ? 's' : ''}
-              {products[0].searchQuery ? ` for "${products[0].searchQuery}"` : ''}
+              {products[0]?.searchQuery ? ` for "${products[0].searchQuery}"` : ''}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((p, i) => (
-                <ProductCard key={i} product={p} />
+                <ProductCard key={i} product={p} onSave={setSaveTarget} />
               ))}
             </div>
             <p className="text-xs text-gray-400 mt-10 text-center">
@@ -160,6 +148,8 @@ export default function ShopPage() {
           </div>
         )}
       </section>
+
+      <SaveModal product={saveTarget} onClose={() => setSaveTarget(null)} />
 
       <Footer />
     </>
