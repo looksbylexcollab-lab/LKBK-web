@@ -14,6 +14,8 @@ interface WishlistItem {
   }
   is_claimed: boolean
   note: string | null
+  size: string | null
+  color: string | null
 }
 
 interface Wishlist {
@@ -36,7 +38,7 @@ async function getWishlist(shareToken: string): Promise<Wishlist | null> {
       id, name, emoji,
       user:users(display_name),
       items:wishlist_items(
-        id, is_claimed, note,
+        id, is_claimed, note, size, color,
         product:products(name, brand, price, image_url, shop_url)
       )
     `)
@@ -101,8 +103,22 @@ export default async function WishlistPage({
                   <div className="p-4">
                     {p.brand && <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{p.brand}</p>}
                     <p className="font-semibold text-gray-900 mb-1 line-clamp-2">{p.name}</p>
-                    {p.price && <p className="text-brand-600 font-medium text-sm mb-3">{p.price}</p>}
-                    {item.note && <p className="text-gray-400 text-xs italic mb-3">&ldquo;{item.note}&rdquo;</p>}
+                    {p.price && <p className="text-bark font-semibold text-sm mb-2">{p.price}</p>}
+                    {(item.size || item.color) && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {item.size && (
+                          <span className="text-xs bg-cream-300 text-bark px-2.5 py-1 rounded-full">
+                            <span className="text-bark-muted">Size</span> {item.size}
+                          </span>
+                        )}
+                        {item.color && (
+                          <span className="text-xs bg-cream-300 text-bark px-2.5 py-1 rounded-full">
+                            <span className="text-bark-muted">Color</span> {item.color}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {item.note && <p className="text-bark-muted text-xs italic mb-3">&ldquo;{item.note}&rdquo;</p>}
                     {p.shop_url && (
                       <a
                         href={p.shop_url}
