@@ -39,7 +39,6 @@ export default function LoginPage() {
       if (error) setError(error.message)
       else router.replace('/')
     }
-
     setLoading(false)
   }
 
@@ -51,19 +50,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
-      <Link href="/" className="text-3xl font-bold mb-8">LKBK</Link>
+    <div className="min-h-screen bg-pearl-100 flex flex-col items-center justify-center px-6">
+      <Link href="/" className="text-base font-light tracking-luxury uppercase text-charcoal mb-10 hover:text-gold-400 transition-colors">
+        LKBK
+      </Link>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm p-8">
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          {mode === 'signin' ? 'Welcome back' : 'Create account'}
-        </h1>
+      <div className="bg-white border border-pearl-200 w-full max-w-sm p-10">
+        <div className="text-center mb-8">
+          <div className="w-8 h-px bg-gold-300 mx-auto mb-6" />
+          <h1 className="text-xl font-light tracking-wide">
+            {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
+          </h1>
+        </div>
 
         <button
           onClick={handleGoogle}
-          className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 text-sm font-medium hover:bg-gray-50 transition-colors mb-6"
+          className="w-full flex items-center justify-center gap-3 border border-pearl-300 py-3 text-xs uppercase tracking-widest text-charcoal-muted hover:border-gold-200 hover:bg-pearl-50 transition-colors mb-8"
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -72,12 +76,12 @@ export default function LoginPage() {
           Continue with Google
         </button>
 
-        <div className="relative mb-6">
+        <div className="relative mb-8">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-100" />
+            <div className="w-full border-t border-pearl-200" />
           </div>
           <div className="relative text-center">
-            <span className="bg-white px-3 text-xs text-gray-400">or</span>
+            <span className="bg-white px-3 label-caps text-pearl-400">or</span>
           </div>
         </div>
 
@@ -89,7 +93,7 @@ export default function LoginPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
               required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400"
+              className="w-full border border-pearl-300 focus:border-gold-300 px-4 py-3 text-sm font-light focus:outline-none bg-white transition-colors placeholder-charcoal-muted/40"
             />
           )}
           <input
@@ -98,7 +102,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email address"
             required
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400"
+            className="w-full border border-pearl-300 focus:border-gold-300 px-4 py-3 text-sm font-light focus:outline-none bg-white transition-colors placeholder-charcoal-muted/40"
           />
           <input
             type="password"
@@ -107,28 +111,28 @@ export default function LoginPage() {
             placeholder="Password"
             required
             minLength={8}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400"
+            className="w-full border border-pearl-300 focus:border-gold-300 px-4 py-3 text-sm font-light focus:outline-none bg-white transition-colors placeholder-charcoal-muted/40"
           />
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          {success && <p className="text-green-600 text-sm">{success}</p>}
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          {success && <p className="text-xs text-green-600">{success}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-black hover:bg-gray-800 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors"
+            className="w-full bg-charcoal hover:bg-charcoal-light disabled:opacity-40 text-pearl-100 label-caps py-3.5 transition-colors mt-2"
           >
-            {loading ? '…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+            {loading ? '…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center label-caps text-charcoal-muted mt-8">
           {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
           <button
             onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null) }}
-            className="text-black font-semibold hover:underline"
+            className="text-gold-400 hover:text-gold-500 transition-colors"
           >
-            {mode === 'signin' ? 'Sign up' : 'Sign in'}
+            {mode === 'signin' ? 'Sign Up' : 'Sign In'}
           </button>
         </p>
       </div>

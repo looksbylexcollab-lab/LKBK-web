@@ -32,12 +32,8 @@ export default function ShopPage() {
         body: JSON.stringify(body),
       })
       const data = await res.json()
-
-      if (!res.ok || data.error) {
-        setError(data.error ?? 'Something went wrong. Please try again.')
-      } else {
-        setProducts(data.products ?? [])
-      }
+      if (!res.ok || data.error) setError(data.error ?? 'Something went wrong. Please try again.')
+      else setProducts(data.products ?? [])
     } catch {
       setError('Network error. Please check your connection.')
     } finally {
@@ -66,34 +62,39 @@ export default function ShopPage() {
     <>
       <Header />
 
-      <section className="bg-black text-white px-6 py-16 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">Discover any product</h1>
-        <p className="text-gray-400 text-lg mb-10">
-          Paste a link from Instagram, TikTok, or any website — or upload a photo.
-        </p>
+      {/* Hero search */}
+      <section className="bg-charcoal">
+        <div className="max-w-3xl mx-auto px-8 py-24 text-center">
+          <p className="label-caps text-gold-300 mb-4">Visual Search</p>
+          <div className="w-10 h-px bg-gold-300 mx-auto mb-8" />
+          <h1 className="text-4xl md:text-5xl font-light text-pearl-100 tracking-wide mb-4">
+            Discover any product
+          </h1>
+          <p className="text-pearl-400 text-sm font-light mb-12">
+            Paste a link from Instagram, TikTok, or any website — or upload a photo.
+          </p>
 
-        <form onSubmit={handleUrlSearch} className="max-w-2xl mx-auto flex gap-3">
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste a product or social media URL…"
-            className="flex-1 bg-white/10 border border-white/20 rounded-full px-5 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-brand-400 transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={loading || !url.trim()}
-            className="bg-brand-500 hover:bg-brand-400 disabled:opacity-50 text-white font-semibold px-8 py-3 rounded-full transition-colors whitespace-nowrap"
-          >
-            {loading ? 'Searching…' : 'Search'}
-          </button>
-        </form>
+          <form onSubmit={handleUrlSearch} className="flex gap-0">
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Paste a URL…"
+              className="flex-1 bg-white/5 border border-white/20 border-r-0 px-6 py-4 text-pearl-100 placeholder-pearl-400/50 focus:outline-none focus:border-gold-300 transition-colors text-sm font-light"
+            />
+            <button
+              type="submit"
+              disabled={loading || !url.trim()}
+              className="bg-gold-300 hover:bg-gold-200 disabled:opacity-40 text-charcoal label-caps px-8 py-4 transition-colors whitespace-nowrap"
+            >
+              {loading ? '…' : 'Search'}
+            </button>
+          </form>
 
-        <div className="mt-4">
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
-            className="text-gray-400 hover:text-white text-sm underline underline-offset-2 transition-colors"
+            className="mt-4 label-caps text-pearl-400 hover:text-gold-300 transition-colors"
           >
             or upload a photo
           </button>
@@ -101,56 +102,61 @@ export default function ShopPage() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 py-16 min-h-[40vh]">
+      {/* Results */}
+      <section className="max-w-6xl mx-auto px-8 py-20 min-h-[40vh]">
         {loading && (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <div className="w-10 h-10 border-4 border-brand-400 border-t-transparent rounded-full animate-spin mb-4" />
-            <p>Our AI is scanning the image…</p>
+          <div className="flex flex-col items-center justify-center py-28 text-charcoal-muted">
+            <div className="w-8 h-8 border border-gold-300 border-t-transparent rounded-full animate-spin mb-6" />
+            <p className="label-caps text-gold-400">Scanning image…</p>
           </div>
         )}
 
         {error && (
-          <div className="text-center py-20">
-            <p className="text-red-500 font-medium">{error}</p>
-            <p className="text-gray-400 text-sm mt-2">Try a different URL or upload an image directly.</p>
+          <div className="text-center py-28">
+            <p className="text-sm text-red-400 mb-2">{error}</p>
+            <p className="label-caps text-charcoal-muted">Try a different URL or upload an image directly.</p>
           </div>
         )}
 
         {products && products.length === 0 && (
-          <div className="text-center py-20 text-gray-400">
-            <p className="text-xl font-medium mb-2">No products found</p>
-            <p className="text-sm">Try a clearer image or a direct product page URL.</p>
+          <div className="text-center py-28 text-charcoal-muted">
+            <div className="w-10 h-10 border border-pearl-300 flex items-center justify-center mx-auto mb-6 text-xl">◇</div>
+            <p className="text-sm font-light mb-2">No products found</p>
+            <p className="label-caps">Try a clearer image or a direct product page URL.</p>
           </div>
         )}
 
         {products && products.length > 0 && (
           <>
-            <p className="text-sm text-gray-500 mb-8">
-              Found {products.length} product{products.length !== 1 ? 's' : ''}
-              {products[0]?.searchQuery ? ` for "${products[0].searchQuery}"` : ''}
-            </p>
+            <div className="flex items-center gap-4 mb-10">
+              <div className="h-px flex-1 bg-pearl-300" />
+              <p className="label-caps text-charcoal-muted">
+                {products.length} result{products.length !== 1 ? 's' : ''}
+                {products[0]?.searchQuery ? ` — ${products[0].searchQuery}` : ''}
+              </p>
+              <div className="h-px flex-1 bg-pearl-300" />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((p, i) => (
                 <ProductCard key={i} product={p} onSave={setSaveTarget} />
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-10 text-center">
-              LKBK earns a commission on qualifying purchases through affiliate links. Prices shown are estimates.
+            <p className="label-caps text-charcoal-muted text-center mt-12">
+              Prices are estimates · LKBK earns a commission on qualifying purchases
             </p>
           </>
         )}
 
         {!loading && !products && !error && (
-          <div className="text-center py-20 text-gray-400">
-            <p className="text-4xl mb-4">🔍</p>
-            <p className="text-lg font-medium mb-1">Paste a link to get started</p>
-            <p className="text-sm">Works with Instagram, TikTok, Amazon, and more.</p>
+          <div className="text-center py-28 text-charcoal-muted">
+            <div className="w-10 h-10 border border-pearl-300 flex items-center justify-center mx-auto mb-6 text-xl">◈</div>
+            <p className="text-sm font-light mb-2">Paste a link to get started</p>
+            <p className="label-caps">Works with Instagram, TikTok, Amazon, and more.</p>
           </div>
         )}
       </section>
 
       <SaveModal product={saveTarget} onClose={() => setSaveTarget(null)} />
-
       <Footer />
     </>
   )
