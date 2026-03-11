@@ -18,6 +18,7 @@ export default function ShopPage() {
   const [products, setProducts] = useState<Product[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saveTarget, setSaveTarget] = useState<SaveProduct | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function search(body: object) {
@@ -52,7 +53,9 @@ export default function ShopPage() {
     if (!file) return
     const reader = new FileReader()
     reader.onload = async () => {
-      const imageBase64 = (reader.result as string).split(',')[1]
+      const dataUrl = reader.result as string
+      setPreviewUrl(dataUrl)
+      const imageBase64 = dataUrl.split(',')[1]
       await search({ imageBase64 })
     }
     reader.readAsDataURL(file)
@@ -99,6 +102,22 @@ export default function ShopPage() {
             or upload a photo
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+
+          {previewUrl && (
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <img
+                src={previewUrl}
+                alt="Uploaded photo"
+                className="w-40 h-40 object-cover border border-white/20"
+              />
+              <button
+                onClick={() => { setPreviewUrl(null); setProducts(null); setError(null) }}
+                className="label-caps text-pearl-400/60 hover:text-pearl-400 transition-colors text-xs"
+              >
+                clear
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
