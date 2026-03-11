@@ -51,7 +51,7 @@ export default function CollectionDetailPage() {
 
     if (!data) { router.replace('/collections'); return }
     setCollection({ id: data.id, name: data.name })
-    setItems(data.collection_items ?? [])
+    setItems((data.collection_items ?? []) as unknown as Item[])
     setFetching(false)
   }
 

@@ -41,7 +41,7 @@ async function getWishlist(shareToken: string): Promise<Wishlist | null> {
       )
     `)
     .eq('share_token', shareToken)
-    .eq('is_public', true)
+    .eq('is_shared', true)
     .single()
 
   return data as Wishlist | null
