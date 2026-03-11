@@ -7,8 +7,104 @@ export default function HomePage() {
     <>
       <Header />
 
-      {/* Hero */}
-      <section className="bg-cream-200">
+      {/* Landing Hero */}
+      <section className="bg-cream-200 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-8 py-20 md:py-28 flex flex-col md:flex-row items-center gap-12 md:gap-16">
+
+          {/* Left — copy */}
+          <div className="flex-1 text-left">
+            <p className="label-caps mb-5">AI-Powered Fashion Discovery</p>
+            <h1 className="text-5xl md:text-6xl font-bold text-bark leading-[1.05] mb-6">
+              Save what<br />you love,<br />
+              <span className="italic text-tan-400">find it later.</span>
+            </h1>
+            <p className="text-bark-muted text-base leading-relaxed max-w-md mb-8 font-sans">
+              Your personal lookbook for everything you want. Paste a link, snap a photo — our AI identifies products instantly. Organize into collections, share wishlists, earn cashback.
+            </p>
+            <div className="flex flex-wrap items-center gap-4 mb-6">
+              <Link href="/shop" className="btn-dark px-8 py-3.5 text-sm inline-flex items-center gap-2">
+                Get Started Free
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+              </Link>
+              <Link href="#how-it-works" className="text-sm text-bark font-medium hover:text-bark-muted transition-colors font-sans underline underline-offset-4">
+                See How It Works
+              </Link>
+            </div>
+            <p className="text-xs text-bark-subtle font-sans">Free to use · No credit card required · Works with any website</p>
+          </div>
+
+          {/* Right — phone mockup */}
+          <div className="flex-shrink-0 flex justify-center md:justify-end w-full md:w-auto">
+            <div className="relative">
+              {/* Phone frame */}
+              <div className="w-[240px] md:w-[280px] bg-bark rounded-[2.5rem] p-2 shadow-2xl shadow-bark/20 rotate-3">
+                <div className="bg-cream-100 rounded-[2rem] overflow-hidden" style={{ height: '520px' }}>
+                  {/* Status bar */}
+                  <div className="bg-cream-100 px-5 pt-3 pb-2 flex justify-between items-center">
+                    <span className="text-[10px] font-semibold text-bark font-sans">9:41</span>
+                    <div className="w-20 h-4 bg-bark rounded-full" />
+                    <div className="flex gap-1">
+                      <div className="w-3 h-2 bg-bark rounded-sm opacity-60" />
+                      <div className="w-3 h-2 bg-bark rounded-sm opacity-80" />
+                      <div className="w-3 h-2 bg-bark rounded-sm" />
+                    </div>
+                  </div>
+                  {/* App header */}
+                  <div className="px-4 py-2 border-b border-cream-300 flex items-center justify-between">
+                    <span className="text-sm font-bold text-bark font-sans">LKBK</span>
+                    <div className="w-6 h-6 bg-cream-300 rounded-full" />
+                  </div>
+                  {/* Product grid */}
+                  <div className="p-3 grid grid-cols-2 gap-2">
+                    {[
+                      { bg: 'bg-[#D4C5B8]', h: 'h-28' },
+                      { bg: 'bg-[#C8BAA8]', h: 'h-24' },
+                      { bg: 'bg-[#BFB3A4]', h: 'h-24' },
+                      { bg: 'bg-[#D4C5B8]', h: 'h-28' },
+                    ].map((card, i) => (
+                      <div key={i} className={`${card.bg} ${card.h} rounded-xl relative overflow-hidden`}>
+                        <div className="absolute bottom-2 left-2 right-2 bg-white/80 rounded-lg px-2 py-1">
+                          <div className="h-1.5 bg-bark/20 rounded w-3/4 mb-1" />
+                          <div className="h-1.5 bg-bark/10 rounded w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Bottom nav */}
+                  <div className="absolute bottom-4 left-2 right-2 bg-white rounded-2xl mx-1 px-4 py-2.5 flex justify-around shadow-sm">
+                    {[
+                      <svg key="home" width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z"/><path d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z"/></svg>,
+                      <svg key="search" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>,
+                      <svg key="heart" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>,
+                      <svg key="user" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>,
+                    ].map((icon, i) => (
+                      <div key={i} className={`text-${i === 0 ? 'bark' : 'bark-subtle'}`}>{icon}</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating badge */}
+              <div className="absolute -top-3 -right-4 bg-white rounded-2xl shadow-lg px-3 py-2 flex items-center gap-2 border border-cream-300">
+                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg width="12" height="12" fill="none" stroke="#16a34a" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold text-bark font-sans leading-none">Product Identified</p>
+                  <p className="text-[8px] text-bark-muted font-sans leading-none mt-0.5">Oak · Premium · Check S…</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Overview — "Your lookbook, supercharged" */}
+      <section className="bg-cream-300 border-t border-cream-400">
         <div className="max-w-3xl mx-auto px-8 pt-24 pb-20 text-center">
           <p className="label-caps mb-6">Everything you need</p>
           <h1 className="text-5xl md:text-6xl font-bold text-bark leading-tight mb-6">
@@ -101,7 +197,7 @@ export default function HomePage() {
       </div>
 
       {/* How it works */}
-      <section className="max-w-4xl mx-auto px-8 py-20">
+      <section id="how-it-works" className="max-w-4xl mx-auto px-8 py-20">
         <div className="text-center mb-16">
           <p className="label-caps mb-4">The Process</p>
           <h2 className="text-4xl font-bold text-bark">How it works</h2>
