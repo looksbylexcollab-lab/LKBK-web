@@ -15,6 +15,55 @@ interface Collection {
   cover_images: string[]
 }
 
+function CollectionMosaic({ images }: { images: string[] }) {
+  if (images.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-cream-300">
+        <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-cream-500">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+        </svg>
+      </div>
+    )
+  }
+
+  if (images.length === 1) {
+    return (
+      <div className="relative w-full h-full">
+        <Image src={images[0]} alt="" fill className="object-cover" unoptimized />
+      </div>
+    )
+  }
+
+  if (images.length === 2) {
+    return (
+      <div className="flex w-full h-full gap-0.5">
+        {images.map((img, i) => (
+          <div key={i} className="relative flex-1">
+            <Image src={img} alt="" fill className="object-cover" unoptimized />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // 3+ images: large left (~60%) + 2 stacked right (~40%)
+  return (
+    <div className="flex w-full h-full gap-0.5">
+      <div className="relative" style={{ flex: '1.5' }}>
+        <Image src={images[0]} alt="" fill className="object-cover" unoptimized />
+      </div>
+      <div className="flex flex-col gap-0.5" style={{ flex: '1' }}>
+        <div className="relative flex-1">
+          <Image src={images[1]} alt="" fill className="object-cover" unoptimized />
+        </div>
+        <div className="relative flex-1">
+          <Image src={images[2]} alt="" fill className="object-cover" unoptimized />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CollectionsPage() {
   const { user, supabase, loading } = useAuth()
   const router = useRouter()
@@ -46,7 +95,7 @@ export default function CollectionsPage() {
         cover_images: c.collection_items
           .map((i) => i.product?.image_url)
           .filter(Boolean)
-          .slice(0, 4) as string[],
+          .slice(0, 3) as string[],
       }))
     )
     setFetching(false)
@@ -72,70 +121,79 @@ export default function CollectionsPage() {
   return (
     <>
       <Header />
-      <main className="max-w-5xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">My Collections</h1>
+      <main className="max-w-3xl mx-auto px-6 py-12">
+
+        {/* Page header */}
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-3xl font-bold text-bark">Collections</h1>
           <button
-            onClick={() => setCreating(true)}
-            className="flex items-center gap-2 bg-black text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-gray-800 transition-colors"
+            onClick={() => setCreating((v) => !v)}
+            className="w-10 h-10 bg-bark hover:bg-bark-light text-white rounded-full flex items-center justify-center transition-colors text-xl leading-none"
+            aria-label="New collection"
           >
-            <span>+</span> New Collection
+            +
           </button>
         </div>
+        <p className="text-bark-muted text-sm mb-8 font-sans">Organize your saved finds into themed collections.</p>
 
+        {/* Create form */}
         {creating && (
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
-            <p className="font-semibold mb-3">New Collection</p>
+          <div className="bg-cream-300 border border-cream-400 rounded-2xl p-5 mb-6">
+            <p className="font-semibold text-bark mb-3 font-sans text-sm">New Collection</p>
             <div className="flex gap-3">
               <input
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. Summer Fits, Resort Wear…"
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-400"
+                className="flex-1 bg-white border border-cream-400 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-bark text-bark font-sans"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
               />
-              <button onClick={handleCreate} disabled={!newName.trim()} className="bg-black text-white text-sm font-semibold px-6 py-2.5 rounded-xl disabled:opacity-40">
+              <button onClick={handleCreate} disabled={!newName.trim()} className="btn-dark px-5 py-2.5 text-xs disabled:opacity-40">
                 Create
               </button>
-              <button onClick={() => setCreating(false)} className="text-gray-400 text-sm px-4">
+              <button onClick={() => setCreating(false)} className="text-bark-muted text-sm px-3 font-sans">
                 Cancel
               </button>
             </div>
           </div>
         )}
 
+        {/* Empty state */}
         {collections.length === 0 ? (
-          <div className="text-center py-24 text-gray-400">
-            <div className="text-5xl mb-4">📁</div>
-            <p className="text-xl font-medium mb-2">No collections yet</p>
-            <p className="text-sm mb-6">Save products from visual search into curated collections.</p>
-            <Link href="/shop" className="bg-black text-white font-semibold px-6 py-3 rounded-full text-sm">
+          <div className="text-center py-24 text-bark-muted">
+            <div className="w-16 h-16 bg-cream-300 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+              </svg>
+            </div>
+            <p className="text-lg font-bold text-bark mb-2">No collections yet</p>
+            <p className="text-sm mb-6 font-sans">Save products from visual search into curated collections.</p>
+            <Link href="/shop" className="btn-dark inline-block px-6 py-3 text-sm">
               Start Discovering
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {collections.map((c) => (
-              <Link key={c.id} href={`/collections/${c.id}`} className="group">
-                <div className="rounded-2xl overflow-hidden bg-gray-100 aspect-square relative mb-3">
-                  {c.cover_images.length === 0 ? (
-                    <div className="w-full h-full flex items-center justify-center text-gray-300 text-5xl">📁</div>
-                  ) : c.cover_images.length < 4 ? (
-                    <Image src={c.cover_images[0]} alt={c.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" unoptimized />
-                  ) : (
-                    <div className="grid grid-cols-2 h-full">
-                      {c.cover_images.map((img, i) => (
-                        <div key={i} className="relative overflow-hidden">
-                          <Image src={img} alt="" fill className="object-cover group-hover:scale-105 transition-transform duration-300" unoptimized />
-                        </div>
-                      ))}
+              <Link key={c.id} href={`/collections/${c.id}`} className="group block">
+                <div className="bg-cream-300 rounded-2xl overflow-hidden border border-cream-400 hover:border-cream-500 transition-colors">
+                  {/* Mosaic */}
+                  <div className="relative overflow-hidden" style={{ aspectRatio: '4/3' }}>
+                    <CollectionMosaic images={c.cover_images} />
+                  </div>
+                  {/* Footer */}
+                  <div className="px-4 py-3.5 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-bark text-sm font-sans">{c.name}</p>
+                      <p className="text-xs text-bark-muted font-sans mt-0.5">{c.item_count} item{c.item_count !== 1 ? 's' : ''}</p>
                     </div>
-                  )}
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-bark-muted flex-shrink-0">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </div>
                 </div>
-                <p className="font-semibold text-sm">{c.name}</p>
-                <p className="text-xs text-gray-400">{c.item_count} item{c.item_count !== 1 ? 's' : ''}</p>
               </Link>
             ))}
           </div>

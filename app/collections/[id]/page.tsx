@@ -66,23 +66,30 @@ export default function CollectionDetailPage() {
     <>
       <Header />
       <main className="max-w-5xl mx-auto px-6 py-12">
-        <div className="flex items-center gap-3 mb-2">
-          <Link href="/collections" className="text-gray-400 hover:text-gray-600 text-sm">Collections</Link>
-          <span className="text-gray-300">/</span>
-          <span className="text-sm text-gray-600">{collection?.name}</span>
+
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 mb-6 text-sm font-sans">
+          <Link href="/collections" className="text-bark-muted hover:text-bark transition-colors">Collections</Link>
+          <span className="text-bark-subtle">/</span>
+          <span className="text-bark">{collection?.name}</span>
         </div>
 
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">{collection?.name}</h1>
-          <p className="text-gray-400 text-sm">{items.length} item{items.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-3xl font-bold text-bark">{collection?.name}</h1>
+          <p className="text-bark-muted text-sm font-sans">{items.length} item{items.length !== 1 ? 's' : ''}</p>
         </div>
 
         {items.length === 0 ? (
-          <div className="text-center py-24 text-gray-400">
-            <div className="text-5xl mb-4">🛍️</div>
-            <p className="text-xl font-medium mb-2">This collection is empty</p>
-            <p className="text-sm mb-6">Save products from visual search into this collection.</p>
-            <Link href="/shop" className="bg-black text-white font-semibold px-6 py-3 rounded-full text-sm">
+          <div className="text-center py-24 text-bark-muted">
+            <div className="w-16 h-16 bg-cream-300 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z" />
+              </svg>
+            </div>
+            <p className="text-lg font-bold text-bark mb-2">This collection is empty</p>
+            <p className="text-sm mb-6 font-sans">Save products from visual search into this collection.</p>
+            <Link href="/shop" className="btn-dark inline-block px-6 py-3 text-sm">
               Discover Products
             </Link>
           </div>
@@ -91,32 +98,32 @@ export default function CollectionDetailPage() {
             {items.map((item) => {
               const p = item.product
               return (
-                <div key={item.id} className="group bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-                  <div className="relative aspect-square bg-gray-50">
+                <div key={item.id} className="group bg-white border border-cream-400 rounded-2xl overflow-hidden hover:border-cream-500 transition-colors">
+                  <div className="relative aspect-square bg-cream-200">
                     {p.image_url ? (
                       <Image src={p.image_url} alt={p.name} fill className="object-cover" unoptimized />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-3xl">🛍️</div>
+                      <div className="w-full h-full flex items-center justify-center text-cream-500 text-3xl">◇</div>
                     )}
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-sm
-                                 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-500 text-xs"
+                      className="absolute top-2 right-2 w-7 h-7 bg-white/90 border border-cream-400 rounded-full flex items-center justify-center
+                                 opacity-0 group-hover:opacity-100 transition-opacity text-bark-muted hover:text-red-500 text-xs"
                       title="Remove"
                     >
                       ✕
                     </button>
                   </div>
                   <div className="p-3">
-                    {p.brand && <p className="text-xs text-gray-400 mb-0.5">{p.brand}</p>}
-                    <p className="text-sm font-medium line-clamp-2 mb-1">{p.name}</p>
-                    {p.price && <p className="text-xs text-brand-600 font-semibold mb-2">{p.price}</p>}
+                    {p.brand && <p className="text-xs text-tan-400 mb-0.5 uppercase tracking-wide font-sans" style={{ fontSize: '9px' }}>{p.brand}</p>}
+                    <p className="text-sm font-medium text-bark line-clamp-2 mb-1 font-sans">{p.name}</p>
+                    {p.price && <p className="text-xs text-bark font-semibold mb-2 font-sans">{p.price}</p>}
                     {p.shop_url && (
                       <a
                         href={p.shop_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block w-full text-center bg-black text-white text-xs font-semibold py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                        className="block w-full text-center bg-bark hover:bg-bark-light text-white text-xs font-semibold py-2 rounded-full transition-colors font-sans"
                       >
                         Shop Now
                       </a>
