@@ -121,7 +121,7 @@ export default function CollectionsPage() {
   return (
     <>
       <Header />
-      <main className="max-w-3xl mx-auto px-6 py-12">
+      <main className="max-w-5xl mx-auto px-6 py-12">
 
         {/* Page header */}
         <div className="flex items-center justify-between mb-2">
@@ -175,7 +175,7 @@ export default function CollectionsPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {collections.map((c) => (
               <Link key={c.id} href={`/collections/${c.id}`} className="group block">
                 <div className="bg-cream-300 rounded-2xl overflow-hidden border border-cream-400 hover:border-cream-500 transition-colors">
