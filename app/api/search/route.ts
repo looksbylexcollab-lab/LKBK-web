@@ -28,22 +28,29 @@ export async function POST(req: NextRequest) {
 
     const scrapeData = await scrapeRes.json()
 
-    if (!scrapeData.imageUrl) {
-      return NextResponse.json({ error: 'Could not extract an image from that URL.' }, { status: 400 })
+// Build search query from scraped product data to skip the vision step
+    const searchQuery = [scrapeData.brand, scrapeData.name].filter(Boolean).join(' ') || null
+
+    // Try to download the image for visual context; fall back gracefully if blocked
+    let imageBase64: string | null = null
+    if (scrapeData.imageUrl) {
+      try {
+        const imgRes = await fetch(scrapeData.imageUrl)
+        if (imgRes.ok) {
+          const imgBuffer = await imgRes.arrayBuffer()
+          imageBase64 = Buffer.from(imgBuffer).toString('base64')
+        }
+      } catch { /* non-fatal */ }
     }
 
-    const imgRes = await fetch(scrapeData.imageUrl)
-    if (!imgRes.ok) {
-      return NextResponse.json({ error: 'Could not download product image.' }, { status: 502 })
+    if (!searchQuery && !imageBase64) {
+      return NextResponse.json({ error: 'Could not extract product info from that URL.' }, { status: 400 })
     }
-
-    const imgBuffer = await imgRes.arrayBuffer()
-    const imageBase64 = Buffer.from(imgBuffer).toString('base64')
 
     const searchRes = await fetch(`${SUPABASE_URL}/functions/v1/visual-search`, {
       method: 'POST',
       headers: supabaseHeaders(),
-      body: JSON.stringify({ imageBase64 }),
+      body: JSON.stringify({ imageBase64, searchQuery, brand: scrapeData.brand ?? null }),
     })
 
     const results = await searchRes.json()
