@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     // If direct fetch failed, skip search gracefully rather than hard error
     if (!imageBase64) {
-      return NextResponse.json({ error: 'Could not load the video thumbnail. Try uploading a screenshot instead.' }, { status: 400 })
+      return NextResponse.json({ error: 'Could not load the image. Try uploading a screenshot instead.' }, { status: 400 })
     }
 
     const searchRes = await fetch(`${SUPABASE_URL}/functions/v1/visual-search`, {

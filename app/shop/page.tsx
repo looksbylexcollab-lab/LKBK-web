@@ -82,7 +82,7 @@ export default function ShopPage() {
           // Last resort — try server-side fetch of the URL
           await search({ imageUrl: data.thumbnailUrl })
         } else {
-          setError('Could not extract media from that link. Make sure the post is public and try again.')
+          setError("Couldn't extract a thumbnail from that post. Make sure it's public, or upload a screenshot instead.")
         }
       } catch {
         setError('Network error. Please check your connection.')
