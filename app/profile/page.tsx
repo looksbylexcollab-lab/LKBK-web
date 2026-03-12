@@ -39,7 +39,7 @@ export default function ProfilePage() {
   return (
     <>
       <Header />
-      <main className="max-w-lg mx-auto px-6 py-10">
+      <main className="max-w-2xl mx-auto px-6 py-10">
 
         {/* Page header */}
         <div className="flex items-center justify-between mb-8">
