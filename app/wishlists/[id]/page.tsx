@@ -8,6 +8,8 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { useAuth } from '@/components/AuthProvider'
 
+const COVER_EMOJIS = ['❤️','🎁','🛍️','⭐','✨','🎀','💫','🌸','👗','👠','💄','💍','🧴','🌿','🎄','💅','🌺','🦋','🎉','🏖️']
+
 interface WishlistItem {
   id: string
   note: string | null
@@ -28,6 +30,7 @@ interface Wishlist {
   id: string
   name: string
   emoji: string
+  thumbnail_url: string | null
   is_shared: boolean
   share_token: string | null
   items: WishlistItem[]
@@ -152,6 +155,16 @@ export default function WishlistDetailPage() {
   const [addSaved, setAddSaved] = useState(false)
   const urlInputRef = useRef<HTMLInputElement>(null)
 
+  // Cover picker
+  const [showCoverPicker, setShowCoverPicker] = useState(false)
+  const [coverPickerTab, setCoverPickerTab] = useState<'emoji' | 'item' | 'photo'>('emoji')
+  const [pickerEmoji, setPickerEmoji] = useState('❤️')
+  const [pickerItemUrl, setPickerItemUrl] = useState<string | null>(null)
+  const [pickerPhotoFile, setPickerPhotoFile] = useState<File | null>(null)
+  const [pickerPhotoPreview, setPickerPhotoPreview] = useState<string | null>(null)
+  const [savingCover, setSavingCover] = useState(false)
+  const coverFileInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
   }, [user, loading, router])
@@ -167,6 +180,59 @@ export default function WishlistDetailPage() {
       setUrlInput(''); setScraped(null); setScrapeError(null); setAddSaved(false)
     }
   }, [showAddModal])
+
+  function openCoverPicker() {
+    if (!wishlist) return
+    setPickerEmoji(wishlist.emoji)
+    setPickerItemUrl(null)
+    setPickerPhotoFile(null)
+    setPickerPhotoPreview(null)
+    setCoverPickerTab('emoji')
+    setShowCoverPicker(true)
+  }
+
+  function handleCoverPhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPickerPhotoFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setPickerPhotoPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  function clearCoverPhoto() {
+    setPickerPhotoFile(null)
+    setPickerPhotoPreview(null)
+    if (coverFileInputRef.current) coverFileInputRef.current.value = ''
+  }
+
+  async function saveCover() {
+    if (!wishlist || !user) return
+    setSavingCover(true)
+
+    let thumbnailUrl = wishlist.thumbnail_url
+    let emojiToSave = wishlist.emoji
+
+    if (coverPickerTab === 'emoji') {
+      thumbnailUrl = null
+      emojiToSave = pickerEmoji
+    } else if (coverPickerTab === 'item' && pickerItemUrl) {
+      thumbnailUrl = pickerItemUrl
+    } else if (coverPickerTab === 'photo' && pickerPhotoFile) {
+      const ext = pickerPhotoFile.name.split('.').pop() || 'jpg'
+      const path = `${user.id}/${wishlist.id}_${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('wishlist-covers').upload(path, pickerPhotoFile)
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('wishlist-covers').getPublicUrl(path)
+        thumbnailUrl = urlData.publicUrl
+      }
+    }
+
+    await supabase.from('wishlists').update({ emoji: emojiToSave, thumbnail_url: thumbnailUrl }).eq('id', wishlist.id)
+    setWishlist((prev) => prev ? { ...prev, emoji: emojiToSave, thumbnail_url: thumbnailUrl } : prev)
+    setSavingCover(false)
+    setShowCoverPicker(false)
+  }
 
   async function handleScrape() {
     if (!urlInput.trim()) return
@@ -201,7 +267,7 @@ export default function WishlistDetailPage() {
   async function fetchWishlist() {
     const { data } = await supabase
       .from('wishlists')
-      .select(`id, name, emoji, is_shared, share_token,
+      .select(`id, name, emoji, thumbnail_url, is_shared, share_token,
         items:wishlist_items(id, note, size, color, is_claimed, product:products(id, name, brand, price, image_url, shop_url))`)
       .eq('id', id)
       .eq('user_id', user!.id)
@@ -256,6 +322,7 @@ export default function WishlistDetailPage() {
 
   const unclaimedCount = wishlist.items.filter((i) => !i.is_claimed).length
   const claimedCount = wishlist.items.filter((i) => i.is_claimed).length
+  const itemsWithImages = wishlist.items.filter((i) => i.product.image_url)
 
   return (
     <>
@@ -271,12 +338,27 @@ export default function WishlistDetailPage() {
 
         {/* Header */}
         <div className="flex items-start justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-bark">{wishlist.emoji} {wishlist.name}</h1>
-            <p className="text-bark-muted text-sm font-sans mt-1">
-              {wishlist.items.length} item{wishlist.items.length !== 1 ? 's' : ''}
-              {claimedCount > 0 && ` · ${claimedCount} claimed`}
-            </p>
+          <div className="flex items-start gap-3">
+            {/* Clickable cover thumbnail */}
+            <div className="relative group flex-shrink-0 cursor-pointer" onClick={openCoverPicker}>
+              <div className="w-14 h-14 bg-cream-200 rounded-xl overflow-hidden flex items-center justify-center text-2xl">
+                {wishlist.thumbnail_url ? (
+                  <img src={wishlist.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  wishlist.emoji
+                )}
+              </div>
+              <div className="absolute inset-0 bg-black/30 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="text-white text-xs font-sans font-semibold">Edit</span>
+              </div>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-bark">{wishlist.name}</h1>
+              <p className="text-bark-muted text-sm font-sans mt-1">
+                {wishlist.items.length} item{wishlist.items.length !== 1 ? 's' : ''}
+                {claimedCount > 0 && ` · ${claimedCount} claimed`}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -406,6 +488,124 @@ export default function WishlistDetailPage() {
         )}
       </main>
       <Footer />
+
+      {/* Cover Picker Modal */}
+      {showCoverPicker && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4" onClick={() => setShowCoverPicker(false)}>
+          <div className="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center pt-3 pb-1 md:hidden">
+              <div className="w-10 h-1 bg-cream-400 rounded-full" />
+            </div>
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-cream-300">
+              <h2 className="text-lg font-bold text-bark">Change Cover</h2>
+              <button onClick={() => setShowCoverPicker(false)} className="w-8 h-8 flex items-center justify-center text-bark-muted hover:text-bark rounded-full hover:bg-cream-200 transition-colors text-xl leading-none">×</button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex px-6 pt-4 gap-5 border-b border-cream-300">
+              {(['emoji', 'item', 'photo'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setCoverPickerTab(tab)}
+                  className={`text-sm font-semibold pb-3 border-b-2 transition-colors font-sans ${
+                    coverPickerTab === tab ? 'border-bark text-bark' : 'border-transparent text-bark-muted hover:text-bark'
+                  }`}
+                >
+                  {tab === 'emoji' ? 'Emoji' : tab === 'item' ? 'Item Photo' : 'Upload Photo'}
+                </button>
+              ))}
+            </div>
+
+            <div className="px-6 py-5">
+              {/* Emoji tab */}
+              {coverPickerTab === 'emoji' && (
+                <div className="grid grid-cols-5 gap-2">
+                  {COVER_EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      onClick={() => setPickerEmoji(e)}
+                      className={`text-2xl w-full aspect-square rounded-xl flex items-center justify-center transition-colors ${
+                        pickerEmoji === e ? 'bg-cream-300 ring-2 ring-bark' : 'hover:bg-cream-200'
+                      }`}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Item Photo tab */}
+              {coverPickerTab === 'item' && (
+                itemsWithImages.length === 0 ? (
+                  <div className="text-center py-8 text-bark-muted">
+                    <p className="text-sm font-sans">Add items with photos first to use one as your cover.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2">
+                    {itemsWithImages.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setPickerItemUrl(item.product.image_url)}
+                        className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                          pickerItemUrl === item.product.image_url ? 'border-bark scale-95' : 'border-transparent hover:border-cream-400'
+                        }`}
+                      >
+                        <img src={item.product.image_url!} alt={item.product.name} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {/* Upload Photo tab */}
+              {coverPickerTab === 'photo' && (
+                <div className="flex flex-col items-center gap-4">
+                  <input
+                    ref={coverFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic"
+                    className="hidden"
+                    onChange={handleCoverPhotoSelect}
+                  />
+                  {pickerPhotoPreview ? (
+                    <div className="relative w-32 h-32">
+                      <img src={pickerPhotoPreview} alt="Cover preview" className="w-32 h-32 object-cover rounded-2xl" />
+                      <button
+                        onClick={clearCoverPhoto}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-gray-800 text-white rounded-full text-sm flex items-center justify-center leading-none"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => coverFileInputRef.current?.click()}
+                      className="w-32 h-32 border-2 border-dashed border-cream-400 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-bark transition-colors"
+                    >
+                      <svg className="w-7 h-7 text-bark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-xs text-bark-muted font-sans">Choose photo</span>
+                    </button>
+                  )}
+                  <p className="text-xs text-bark-subtle font-sans">JPEG, PNG, WebP or HEIC · max 5 MB</p>
+                </div>
+              )}
+            </div>
+
+            {/* Save button */}
+            <div className="px-6 pb-6">
+              <button
+                onClick={saveCover}
+                disabled={savingCover || (coverPickerTab === 'item' && !pickerItemUrl) || (coverPickerTab === 'photo' && !pickerPhotoFile)}
+                className="w-full py-3 rounded-xl bg-bark hover:bg-bark-light text-white font-semibold text-sm transition-colors font-sans disabled:opacity-40"
+              >
+                {savingCover ? 'Saving…' : 'Save Cover'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Product Modal */}
       {showAddModal && (
