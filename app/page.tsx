@@ -1,38 +1,36 @@
 import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import WaitlistForm from '@/components/WaitlistForm'
 
 export default function HomePage() {
   return (
     <>
       <Header />
 
-      {/* Landing Hero */}
+      {/* Hero */}
       <section className="bg-cream-200 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-8 py-20 md:py-28 flex flex-col md:flex-row items-center gap-12 md:gap-16">
+        <div className="max-w-6xl mx-auto px-8 py-20 md:py-32 flex flex-col md:flex-row items-center gap-12 md:gap-16">
 
           {/* Left — copy */}
           <div className="flex-1 text-left">
-            <p className="label-caps mb-5">AI-Powered Fashion Discovery</p>
+            <div className="inline-flex items-center gap-2 bg-tan-200/20 border border-tan-200/40 rounded-full px-4 py-1.5 mb-6">
+              <span className="w-2 h-2 bg-tan-400 rounded-full animate-pulse" />
+              <span className="text-xs text-tan-500 font-medium font-sans tracking-wide">Now accepting beta signups</span>
+            </div>
+
             <h1 className="text-5xl md:text-6xl font-bold text-bark leading-[1.05] mb-6">
               Save what<br />you love,<br />
-              <span className="italic text-tan-400">find it later.</span>
+              <span className="italic text-tan-400">shop it later.</span>
             </h1>
+
             <p className="text-bark-muted text-base leading-relaxed max-w-md mb-8 font-sans">
-              Your personal lookbook for everything you want. Paste a link, snap a photo, share directly from Instagram or TikTok — our AI identifies products instantly. Organize into collections, share wishlists, earn cashback.
+              LKBK is the AI-powered lookbook app for fashion lovers. Paste a link, share from Instagram or TikTok — our AI identifies products instantly. Organize collections, share wishlists, earn cashback.
             </p>
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <Link href="/shop" className="btn-dark px-8 py-3.5 text-sm inline-flex items-center gap-2">
-                Get Started Free
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                </svg>
-              </Link>
-              <Link href="#how-it-works" className="text-sm text-bark font-medium hover:text-bark-muted transition-colors font-sans underline underline-offset-4">
-                See How It Works
-              </Link>
-            </div>
-            <p className="text-xs text-bark-subtle font-sans">Free to use · No credit card required · Works with any website</p>
+
+            <WaitlistForm />
+
+            <p className="text-xs text-bark-subtle font-sans mt-3">Free · No credit card required · iOS app coming soon</p>
           </div>
 
           {/* Right — phone mockup */}
@@ -103,25 +101,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Overview — "Your lookbook, supercharged" */}
-      <section className="bg-cream-300 border-t border-cream-400">
-        <div className="max-w-3xl mx-auto px-8 pt-24 pb-20 text-center">
-          <p className="label-caps mb-6">Everything you need</p>
-          <h1 className="text-5xl md:text-6xl font-bold text-bark leading-tight mb-6">
-            Your lookbook,<br />supercharged.
-          </h1>
-          <p className="text-bark-muted text-lg leading-relaxed max-w-xl mx-auto mb-10">
-            From AI-powered product discovery to shareable wishlists —
-            LKBK is the only app you need to save, organize, and shop.
-          </p>
-          <Link href="/shop" className="btn-dark inline-block px-10 py-4 text-base">
-            Get Early Access
-          </Link>
+      {/* Social proof strip */}
+      <section className="bg-bark text-white">
+        <div className="max-w-4xl mx-auto px-8 py-6 flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
+          {[
+            { stat: 'AI-Powered', label: 'Product detection' },
+            { stat: 'Cashback', label: 'On qualifying purchases' },
+            { stat: 'Share', label: 'Wishlists with anyone' },
+          ].map((item) => (
+            <div key={item.stat} className="text-center">
+              <p className="text-lg font-bold font-serif text-gold-200">{item.stat}</p>
+              <p className="text-xs text-cream-500 font-sans mt-0.5">{item.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Feature Cards */}
       <section className="max-w-5xl mx-auto px-8 py-20">
+        <div className="text-center mb-14">
+          <p className="label-caps mb-4">What you get</p>
+          <h2 className="text-4xl font-bold text-bark">Your lookbook, supercharged.</h2>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             {
@@ -131,8 +133,8 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
                 </svg>
               ),
-              title: 'AI Lens',
-              body: 'Snap a photo or screenshot of any product. Our AI identifies the exact item and finds where to buy it.',
+              title: 'AI Visual Search',
+              body: 'Snap a photo or screenshot of any look. Our AI identifies the exact items and finds where to buy them.',
             },
             {
               icon: (
@@ -141,7 +143,7 @@ export default function HomePage() {
                 </svg>
               ),
               title: 'Paste Any Link',
-              body: 'Share from Instagram, TikTok, Pinterest, or any browser. We extract the product automatically.',
+              body: 'Share directly from Instagram, TikTok, Pinterest, or any website. Products are extracted automatically.',
             },
             {
               icon: (
@@ -168,7 +170,7 @@ export default function HomePage() {
                 </svg>
               ),
               title: 'Cashback Rewards',
-              body: 'Earn 1% cashback on qualified purchases when you shop through LKBK. Save what you love, save money too.',
+              body: 'Earn cashback on qualifying purchases when you shop through LKBK. Save what you love, save money too.',
             },
             {
               icon: (
@@ -177,7 +179,7 @@ export default function HomePage() {
                 </svg>
               ),
               title: 'Social Sharing',
-              body: 'Share your wishlists with a single link. Perfect for gift registries, birthdays, and holiday lists.',
+              body: 'Share your lookbook with a single link. Perfect for gift registries, style inspo, and holiday lists.',
             },
           ].map((f) => (
             <div key={f.title} className="cream-card p-8">
@@ -205,9 +207,9 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {[
-            { step: '01', title: 'Find a product you love', body: 'See something on Instagram, TikTok, or any website? Copy the link.' },
-            { step: '02', title: 'Drop it into LKBK', body: 'Paste the URL or upload a photo. Our AI scans the image and identifies the product.' },
-            { step: '03', title: 'Shop & earn cashback', body: 'Click Shop Now and earn cashback automatically on qualifying purchases.' },
+            { step: '01', title: 'Find a product you love', body: 'See something on Instagram, TikTok, or any website? Copy the link or take a screenshot.' },
+            { step: '02', title: 'Drop it into LKBK', body: 'Paste the URL or upload a photo. Our AI scans and identifies the product instantly.' },
+            { step: '03', title: 'Shop & earn cashback', body: 'Tap Shop Now and earn cashback automatically on qualifying purchases.' },
           ].map((s) => (
             <div key={s.step} className="text-center">
               <p className="text-tan-400 font-bold text-3xl mb-4 font-serif">{s.step}</p>
@@ -219,15 +221,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="bg-cream-300">
-        <div className="max-w-2xl mx-auto px-8 py-20 text-center">
-          <p className="label-caps mb-4">Get started</p>
-          <h2 className="text-4xl font-bold text-bark mb-4">Ready to shop smarter?</h2>
-          <p className="text-sm text-bark-muted mb-10 font-sans">No account required to try it out.</p>
-          <Link href="/shop" className="btn-dark inline-block px-10 py-4 text-base">
-            Try Visual Search
-          </Link>
+      {/* Bottom CTA */}
+      <section className="bg-cream-300 border-t border-cream-400">
+        <div className="max-w-2xl mx-auto px-8 py-20 text-center flex flex-col items-center">
+          <p className="label-caps mb-4">Be first in line</p>
+          <h2 className="text-4xl font-bold text-bark mb-4">Get early access.</h2>
+          <p className="text-sm text-bark-muted mb-8 font-sans max-w-sm">
+            Join the waitlist and be among the first to try LKBK when we launch. Limited beta spots available.
+          </p>
+          <WaitlistForm source="bottom-cta" />
         </div>
       </section>
 
