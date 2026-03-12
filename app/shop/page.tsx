@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import ProductCard from '@/components/ProductCard'
 import SaveModal from '@/components/SaveModal'
 import VideoScrubber from '@/components/VideoScrubber'
+import ImageCropSelector from '@/components/ImageCropSelector'
 import type { SaveProduct } from '@/components/SaveModal'
 
 interface Product extends SaveProduct {
@@ -28,11 +29,12 @@ export default function ShopPage() {
   const [scrapedProduct, setScrapedProduct] = useState<SaveProduct | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [extracting, setExtracting] = useState(false)
+  const [cropDataUrl, setCropDataUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function resetAll() {
     setProducts(null); setError(null); setScrapedProduct(null)
-    setPreviewUrl(null); setVideoUrl(null)
+    setPreviewUrl(null); setVideoUrl(null); setCropDataUrl(null)
   }
 
   async function search(body: object) {
@@ -134,12 +136,18 @@ export default function ShopPage() {
     if (!file) return
     resetAll()
     const reader = new FileReader()
-    reader.onload = async () => {
-      const dataUrl = reader.result as string
-      setPreviewUrl(dataUrl)
-      await search({ imageBase64: dataUrl.split(',')[1] })
+    reader.onload = () => {
+      setCropDataUrl(reader.result as string)
     }
     reader.readAsDataURL(file)
+    // Reset input so the same file can be re-selected
+    e.target.value = ''
+  }
+
+  async function handleCropConfirm(croppedBase64: string) {
+    setCropDataUrl(null)
+    setPreviewUrl(`data:image/jpeg;base64,${croppedBase64}`)
+    await search({ imageBase64: croppedBase64 })
   }
 
   async function handleFrameCapture(imageBase64: string) {
@@ -148,6 +156,7 @@ export default function ShopPage() {
   }
 
   const isVideoMode = !!videoUrl
+  const isCropMode = !!cropDataUrl
   const isBusy = loading || saving || extracting
 
   return (
@@ -214,6 +223,17 @@ export default function ShopPage() {
         </div>
       </section>
 
+      {/* Image crop selector */}
+      {isCropMode && (
+        <section className="max-w-2xl mx-auto px-4 py-12">
+          <ImageCropSelector
+            dataUrl={cropDataUrl!}
+            onCrop={handleCropConfirm}
+            onCancel={() => setCropDataUrl(null)}
+          />
+        </section>
+      )}
+
       {/* Video scrubber */}
       {isVideoMode && (
         <section className="max-w-sm mx-auto px-4 py-12">
@@ -261,7 +281,7 @@ export default function ShopPage() {
       )}
 
       {/* Results */}
-      {!isVideoMode && (
+      {!isVideoMode && !isCropMode && (
         <section className="max-w-6xl mx-auto px-8 py-20 min-h-[40vh]">
           {(loading || saving || extracting) && (
             <div className="flex flex-col items-center justify-center py-28 text-bark-muted">
