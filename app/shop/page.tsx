@@ -75,12 +75,9 @@ export default function ShopPage() {
           // We have a playable video — show scrubber
           setVideoUrl(data.videoUrl)
         } else if (data.thumbnailUrl) {
-          // No direct video stream — search on the thumbnail image
+          // No direct video stream — server fetches thumbnail and runs search
           setPreviewUrl(data.thumbnailUrl)
-          const imgRes = await fetch(data.thumbnailUrl)
-          const buf = await imgRes.arrayBuffer()
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
-          await search({ imageBase64: base64 })
+          await search({ imageUrl: data.thumbnailUrl })
         } else {
           setError('Could not extract media from that link. Try a different post.')
         }

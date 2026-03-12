@@ -57,6 +57,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(results)
   }
 
+  // ── Image URL flow: server fetches image → base64 → visual-search ──────────
+  if (body.imageUrl) {
+    let imageBase64: string | null = null
+    try {
+      const imgRes = await fetch(body.imageUrl)
+      if (imgRes.ok) {
+        imageBase64 = Buffer.from(await imgRes.arrayBuffer()).toString('base64')
+      }
+    } catch { /* fall through */ }
+
+    if (!imageBase64) {
+      return NextResponse.json({ error: 'Could not load that image.' }, { status: 400 })
+    }
+
+    const searchRes = await fetch(`${SUPABASE_URL}/functions/v1/visual-search`, {
+      method: 'POST',
+      headers: supabaseHeaders(),
+      body: JSON.stringify({ imageBase64 }),
+    })
+    return NextResponse.json(await searchRes.json())
+  }
+
   // ── Image upload flow: base64 → visual-search directly ───────────────────
   if (body.imageBase64) {
     const searchRes = await fetch(`${SUPABASE_URL}/functions/v1/visual-search`, {
