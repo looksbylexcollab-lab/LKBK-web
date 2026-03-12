@@ -5,11 +5,16 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ProductCard from '@/components/ProductCard'
 import SaveModal from '@/components/SaveModal'
+import VideoScrubber from '@/components/VideoScrubber'
 import type { SaveProduct } from '@/components/SaveModal'
 
 interface Product extends SaveProduct {
   isExactMatch: boolean
   searchQuery: string | null
+}
+
+function isVideoUrl(url: string) {
+  return /tiktok\.com|instagram\.com\/(reel|p\/|tv\/)|youtube\.com\/(watch|shorts)|youtu\.be/i.test(url)
 }
 
 export default function ShopPage() {
@@ -21,13 +26,19 @@ export default function ShopPage() {
   const [saveTarget, setSaveTarget] = useState<SaveProduct | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [scrapedProduct, setScrapedProduct] = useState<SaveProduct | null>(null)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [extracting, setExtracting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function resetAll() {
+    setProducts(null); setError(null); setScrapedProduct(null)
+    setPreviewUrl(null); setVideoUrl(null)
+  }
 
   async function search(body: object) {
     setLoading(true)
     setError(null)
     setProducts(null)
-
     try {
       const res = await fetch('/api/search', {
         method: 'POST',
@@ -47,8 +58,41 @@ export default function ShopPage() {
   async function handleUrlSearch(e: React.FormEvent) {
     e.preventDefault()
     if (!url.trim()) return
-    setScrapedProduct(null)
-    await search({ url: url.trim() })
+    resetAll()
+
+    if (isVideoUrl(url.trim())) {
+      // Video flow — extract, then show scrubber or thumbnail
+      setExtracting(true)
+      try {
+        const res = await fetch('/api/video-extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url.trim() }),
+        })
+        const data = await res.json()
+
+        if (data.videoUrl) {
+          // We have a playable video — show scrubber
+          setVideoUrl(data.videoUrl)
+        } else if (data.thumbnailUrl) {
+          // No direct video stream — search on the thumbnail image
+          setPreviewUrl(data.thumbnailUrl)
+          const imgRes = await fetch(data.thumbnailUrl)
+          const buf = await imgRes.arrayBuffer()
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+          await search({ imageBase64: base64 })
+        } else {
+          setError('Could not extract media from that link. Try a different post.')
+        }
+      } catch {
+        setError('Network error. Please check your connection.')
+      } finally {
+        setExtracting(false)
+      }
+    } else {
+      // Regular URL — scrape + visual search
+      await search({ url: url.trim() })
+    }
   }
 
   async function handleSaveFromUrl(e: React.FormEvent) {
@@ -58,6 +102,7 @@ export default function ShopPage() {
     setError(null)
     setScrapedProduct(null)
     setProducts(null)
+    setVideoUrl(null)
     try {
       const res = await fetch('/api/scrape', {
         method: 'POST',
@@ -87,15 +132,23 @@ export default function ShopPage() {
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    resetAll()
     const reader = new FileReader()
     reader.onload = async () => {
       const dataUrl = reader.result as string
       setPreviewUrl(dataUrl)
-      const imageBase64 = dataUrl.split(',')[1]
-      await search({ imageBase64 })
+      await search({ imageBase64: dataUrl.split(',')[1] })
     }
     reader.readAsDataURL(file)
   }
+
+  async function handleFrameCapture(imageBase64: string) {
+    setVideoUrl(null)
+    await search({ imageBase64 })
+  }
+
+  const isVideoMode = !!videoUrl
+  const isBusy = loading || saving || extracting
 
   return (
     <>
@@ -123,7 +176,7 @@ export default function ShopPage() {
             <button
               type="submit"
               onClick={handleSaveFromUrl}
-              disabled={loading || saving || !url.trim()}
+              disabled={isBusy || !url.trim()}
               className="bg-cream-300 hover:bg-cream-400 disabled:opacity-40 text-bark text-xs uppercase tracking-[0.15em] px-5 py-4 transition-colors whitespace-nowrap font-sans border-l border-cream-400"
             >
               {saving ? '…' : 'Save'}
@@ -131,29 +184,25 @@ export default function ShopPage() {
             <button
               type="button"
               onClick={handleUrlSearch}
-              disabled={loading || saving || !url.trim()}
+              disabled={isBusy || !url.trim()}
               className="bg-bark hover:bg-bark-light disabled:opacity-40 text-white text-xs uppercase tracking-[0.15em] px-6 py-4 transition-colors whitespace-nowrap font-sans rounded-r-full"
             >
-              {loading ? '…' : 'Find Similar'}
+              {loading || extracting ? '…' : isVideoUrl(url) ? 'Open Video' : 'Find Similar'}
             </button>
           </form>
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={loading}
+            disabled={isBusy}
             className="mt-5 text-xs text-bark-muted hover:text-bark transition-colors font-sans uppercase tracking-widest"
           >
             or upload a photo
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
 
-          {previewUrl && (
+          {previewUrl && !isVideoMode && (
             <div className="mt-8 flex flex-col items-center gap-3">
-              <img
-                src={previewUrl}
-                alt="Uploaded photo"
-                className="w-40 h-40 object-cover rounded-2xl border border-cream-400"
-              />
+              <img src={previewUrl} alt="Preview" className="w-40 h-40 object-cover rounded-2xl border border-cream-400" />
               <button
                 onClick={() => { setPreviewUrl(null); setProducts(null); setError(null) }}
                 className="text-xs text-bark-subtle hover:text-bark-muted transition-colors font-sans uppercase tracking-widest"
@@ -164,6 +213,17 @@ export default function ShopPage() {
           )}
         </div>
       </section>
+
+      {/* Video scrubber */}
+      {isVideoMode && (
+        <section className="max-w-sm mx-auto px-4 py-12">
+          <VideoScrubber
+            videoUrl={videoUrl!}
+            onCapture={handleFrameCapture}
+            onCancel={() => setVideoUrl(null)}
+          />
+        </section>
+      )}
 
       {/* Scraped product direct save */}
       {scrapedProduct && (
@@ -181,28 +241,16 @@ export default function ShopPage() {
             )}
             <div className="flex flex-col justify-between flex-1 min-w-0">
               <div>
-                {scrapedProduct.brand && (
-                  <p className="label-caps mb-1">{scrapedProduct.brand}</p>
-                )}
+                {scrapedProduct.brand && <p className="label-caps mb-1">{scrapedProduct.brand}</p>}
                 <p className="text-bark font-bold text-lg leading-snug mb-2 font-sans">{scrapedProduct.name}</p>
-                {scrapedProduct.estimatedPrice && (
-                  <p className="text-tan-400 text-sm font-sans">{scrapedProduct.estimatedPrice}</p>
-                )}
+                {scrapedProduct.estimatedPrice && <p className="text-tan-400 text-sm font-sans">{scrapedProduct.estimatedPrice}</p>}
               </div>
               <div className="flex gap-3 mt-4">
-                <button
-                  onClick={() => setSaveTarget(scrapedProduct)}
-                  className="btn-dark px-6 py-2 text-xs"
-                >
+                <button onClick={() => setSaveTarget(scrapedProduct)} className="btn-dark px-6 py-2 text-xs">
                   Save Product
                 </button>
                 {scrapedProduct.shopUrl && (
-                  <a
-                    href={scrapedProduct.shopUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-outline px-6 py-2 text-xs"
-                  >
+                  <a href={scrapedProduct.shopUrl} target="_blank" rel="noopener noreferrer" className="btn-outline px-6 py-2 text-xs">
                     Shop Now
                   </a>
                 )}
@@ -213,58 +261,62 @@ export default function ShopPage() {
       )}
 
       {/* Results */}
-      <section className="max-w-6xl mx-auto px-8 py-20 min-h-[40vh]">
-        {(loading || saving) && (
-          <div className="flex flex-col items-center justify-center py-28 text-bark-muted">
-            <div className="w-8 h-8 border-2 border-bark border-t-transparent rounded-full animate-spin mb-6" />
-            <p className="label-caps">{saving ? 'Fetching product…' : 'Scanning image…'}</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="text-center py-28">
-            <p className="text-sm text-red-500 mb-2 font-sans">{error}</p>
-            <p className="label-caps">Try a different URL or upload an image directly.</p>
-          </div>
-        )}
-
-        {products && products.length === 0 && (
-          <div className="text-center py-28 text-bark-muted">
-            <div className="w-10 h-10 border border-cream-500 rounded-xl flex items-center justify-center mx-auto mb-6 text-xl">◇</div>
-            <p className="text-sm mb-2 font-sans">No products found</p>
-            <p className="label-caps">Try a clearer image or a direct product page URL.</p>
-          </div>
-        )}
-
-        {products && products.length > 0 && (
-          <>
-            <div className="flex items-center gap-4 mb-10">
-              <div className="h-px flex-1 bg-cream-400" />
+      {!isVideoMode && (
+        <section className="max-w-6xl mx-auto px-8 py-20 min-h-[40vh]">
+          {(loading || saving || extracting) && (
+            <div className="flex flex-col items-center justify-center py-28 text-bark-muted">
+              <div className="w-8 h-8 border-2 border-bark border-t-transparent rounded-full animate-spin mb-6" />
               <p className="label-caps">
-                {products.length} result{products.length !== 1 ? 's' : ''}
-                {products[0]?.searchQuery ? ` — ${products[0].searchQuery}` : ''}
+                {saving ? 'Fetching product…' : extracting ? 'Extracting video…' : 'Scanning image…'}
               </p>
-              <div className="h-px flex-1 bg-cream-400" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((p, i) => (
-                <ProductCard key={i} product={p} onSave={setSaveTarget} />
-              ))}
-            </div>
-            <p className="label-caps text-center mt-12">
-              Prices are estimates · LKBK earns a commission on qualifying purchases
-            </p>
-          </>
-        )}
+          )}
 
-        {!loading && !saving && !products && !error && !scrapedProduct && (
-          <div className="text-center py-28 text-bark-muted">
-            <div className="w-10 h-10 border border-cream-500 rounded-xl flex items-center justify-center mx-auto mb-6 text-xl">◈</div>
-            <p className="text-sm mb-2 font-sans">Paste a link to get started</p>
-            <p className="label-caps">Works with Instagram, TikTok, Amazon, and more.</p>
-          </div>
-        )}
-      </section>
+          {error && (
+            <div className="text-center py-28">
+              <p className="text-sm text-red-500 mb-2 font-sans">{error}</p>
+              <p className="label-caps">Try a different URL or upload an image directly.</p>
+            </div>
+          )}
+
+          {products && products.length === 0 && (
+            <div className="text-center py-28 text-bark-muted">
+              <div className="w-10 h-10 border border-cream-500 rounded-xl flex items-center justify-center mx-auto mb-6 text-xl">◇</div>
+              <p className="text-sm mb-2 font-sans">No products found</p>
+              <p className="label-caps">Try a clearer image or a direct product page URL.</p>
+            </div>
+          )}
+
+          {products && products.length > 0 && (
+            <>
+              <div className="flex items-center gap-4 mb-10">
+                <div className="h-px flex-1 bg-cream-400" />
+                <p className="label-caps">
+                  {products.length} result{products.length !== 1 ? 's' : ''}
+                  {products[0]?.searchQuery ? ` — ${products[0].searchQuery}` : ''}
+                </p>
+                <div className="h-px flex-1 bg-cream-400" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map((p, i) => (
+                  <ProductCard key={i} product={p} onSave={setSaveTarget} />
+                ))}
+              </div>
+              <p className="label-caps text-center mt-12">
+                Prices are estimates · LKBK earns a commission on qualifying purchases
+              </p>
+            </>
+          )}
+
+          {!loading && !saving && !extracting && !products && !error && !scrapedProduct && (
+            <div className="text-center py-28 text-bark-muted">
+              <div className="w-10 h-10 border border-cream-500 rounded-xl flex items-center justify-center mx-auto mb-6 text-xl">◈</div>
+              <p className="text-sm mb-2 font-sans">Paste a link to get started</p>
+              <p className="label-caps">Works with Instagram, TikTok, Amazon, and more.</p>
+            </div>
+          )}
+        </section>
+      )}
 
       <SaveModal product={saveTarget} onClose={() => setSaveTarget(null)} />
       <Footer />
