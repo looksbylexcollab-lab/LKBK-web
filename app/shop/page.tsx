@@ -74,9 +74,12 @@ export default function ShopPage() {
         if (data.videoUrl) {
           // We have a playable video — show scrubber
           setVideoUrl(data.videoUrl)
+        } else if (data.thumbnailBase64) {
+          // Edge function already fetched the thumbnail — search directly
+          setPreviewUrl(`data:image/jpeg;base64,${data.thumbnailBase64}`)
+          await search({ imageBase64: data.thumbnailBase64 })
         } else if (data.thumbnailUrl) {
-          // No direct video stream — server fetches thumbnail and runs search
-          setPreviewUrl(data.thumbnailUrl)
+          // Last resort — try server-side fetch of the URL
           await search({ imageUrl: data.thumbnailUrl })
         } else {
           setError('Could not extract media from that link. Try a different post.')
