@@ -54,6 +54,9 @@ export default function Header() {
                       <div className="px-5 py-3 border-b border-cream-300">
                         <p className="text-xs text-bark-muted truncate font-sans">{user.email}</p>
                       </div>
+                      <Link href="/profile" onClick={() => setMenuOpen(false)} className="block px-5 py-3 text-sm text-bark hover:bg-cream-200 transition-colors font-sans">
+                        Profile
+                      </Link>
                       <Link href="/wishlists" onClick={() => setMenuOpen(false)} className="block px-5 py-3 text-sm text-bark hover:bg-cream-200 transition-colors font-sans">
                         Wishlists
                       </Link>
