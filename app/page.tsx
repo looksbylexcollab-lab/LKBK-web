@@ -121,7 +121,7 @@ export default function HomePage() {
       <section className="max-w-5xl mx-auto px-8 py-20">
         <div className="text-center mb-14">
           <p className="label-caps mb-4">What you get</p>
-          <h2 className="text-4xl font-bold text-bark">Your lookbook, supercharged.</h2>
+          <h2 className="text-4xl font-bold text-bark">An All-in-one Shopping Experience</h2>
           <p className="text-bark-muted text-lg leading-relaxed max-w-xl mx-auto mt-4">
             From AI-powered product discovery to shareable wishlists —
             LKBK is the only app you need to save, organize, and shop.
