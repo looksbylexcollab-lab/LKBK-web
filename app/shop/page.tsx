@@ -307,26 +307,43 @@ export default function ShopPage() {
             </div>
           )}
 
-          {products && products.length > 0 && (
-            <>
-              <div className="flex items-center gap-4 mb-10">
-                <div className="h-px flex-1 bg-cream-400" />
-                <p className="label-caps">
-                  {products.length} result{products.length !== 1 ? 's' : ''}
-                  {products[0]?.searchQuery ? ` — ${products[0].searchQuery}` : ''}
+          {products && products.length > 0 && (() => {
+            const best = products[0]
+            const rest = products.slice(1)
+            return (
+              <>
+                {/* Best Result */}
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="h-px flex-1 bg-cream-400" />
+                  <p className="label-caps">Best Result</p>
+                  <div className="h-px flex-1 bg-cream-400" />
+                </div>
+                <div className="max-w-sm mx-auto mb-14">
+                  <ProductCard product={best} onSave={setSaveTarget} />
+                </div>
+
+                {/* Similar Items */}
+                {rest.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="h-px flex-1 bg-cream-400" />
+                      <p className="label-caps">Similar Items</p>
+                      <div className="h-px flex-1 bg-cream-400" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {rest.map((p, i) => (
+                        <ProductCard key={i} product={p} onSave={setSaveTarget} />
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <p className="label-caps text-center mt-12">
+                  Prices are estimates · LKBK earns a commission on qualifying purchases
                 </p>
-                <div className="h-px flex-1 bg-cream-400" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((p, i) => (
-                  <ProductCard key={i} product={p} onSave={setSaveTarget} />
-                ))}
-              </div>
-              <p className="label-caps text-center mt-12">
-                Prices are estimates · LKBK earns a commission on qualifying purchases
-              </p>
-            </>
-          )}
+              </>
+            )
+          })()}
 
           {!loading && !saving && !extracting && !products && !error && !scrapedProduct && (
             <div className="text-center py-28 text-bark-muted">
