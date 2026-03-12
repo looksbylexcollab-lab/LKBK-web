@@ -35,10 +35,16 @@ export async function POST(req: NextRequest) {
     let imageBase64: string | null = null
     if (scrapeData.imageUrl) {
       try {
-        const imgRes = await fetch(scrapeData.imageUrl)
+        const imgRes = await fetch(scrapeData.imageUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+            'Referer': 'https://www.google.com/',
+          },
+          redirect: 'follow',
+        })
         if (imgRes.ok) {
-          const imgBuffer = await imgRes.arrayBuffer()
-          imageBase64 = Buffer.from(imgBuffer).toString('base64')
+          imageBase64 = Buffer.from(await imgRes.arrayBuffer()).toString('base64')
         }
       } catch { /* non-fatal */ }
     }
@@ -61,14 +67,26 @@ export async function POST(req: NextRequest) {
   if (body.imageUrl) {
     let imageBase64: string | null = null
     try {
-      const imgRes = await fetch(body.imageUrl)
+      const imgRes = await fetch(body.imageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': 'https://www.google.com/',
+        },
+        redirect: 'follow',
+      })
       if (imgRes.ok) {
-        imageBase64 = Buffer.from(await imgRes.arrayBuffer()).toString('base64')
+        const contentType = imgRes.headers.get('content-type') ?? ''
+        if (contentType.startsWith('image/') || contentType.startsWith('application/octet')) {
+          imageBase64 = Buffer.from(await imgRes.arrayBuffer()).toString('base64')
+        }
       }
     } catch { /* fall through */ }
 
+    // If direct fetch failed, skip search gracefully rather than hard error
     if (!imageBase64) {
-      return NextResponse.json({ error: 'Could not load that image.' }, { status: 400 })
+      return NextResponse.json({ error: 'Could not load the video thumbnail. Try uploading a screenshot instead.' }, { status: 400 })
     }
 
     const searchRes = await fetch(`${SUPABASE_URL}/functions/v1/visual-search`, {
