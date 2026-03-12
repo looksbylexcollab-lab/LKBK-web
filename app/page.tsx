@@ -122,6 +122,10 @@ export default function HomePage() {
         <div className="text-center mb-14">
           <p className="label-caps mb-4">What you get</p>
           <h2 className="text-4xl font-bold text-bark">Your lookbook, supercharged.</h2>
+          <p className="text-bark-muted text-lg leading-relaxed max-w-xl mx-auto mt-4">
+            From AI-powered product discovery to shareable wishlists —
+            LKBK is the only app you need to save, organize, and shop.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
