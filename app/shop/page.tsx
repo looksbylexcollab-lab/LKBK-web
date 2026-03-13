@@ -8,6 +8,7 @@ import ProductCard from '@/components/ProductCard'
 import SaveModal from '@/components/SaveModal'
 import VideoScrubber from '@/components/VideoScrubber'
 import ImageCropSelector from '@/components/ImageCropSelector'
+import CarouselPicker, { type CarouselSlide } from '@/components/CarouselPicker'
 import type { SaveProduct } from '@/components/SaveModal'
 
 interface Product extends SaveProduct {
@@ -32,11 +33,13 @@ export default function ShopPage() {
   const [videoFallbackBase64, setVideoFallbackBase64] = useState<string | null>(null)
   const [extracting, setExtracting] = useState(false)
   const [cropDataUrl, setCropDataUrl] = useState<string | null>(null)
+  const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[] | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function resetAll() {
     setProducts(null); setError(null); setScrapedProduct(null)
-    setPreviewUrl(null); setVideoUrl(null); setVideoFallbackBase64(null); setCropDataUrl(null)
+    setPreviewUrl(null); setVideoUrl(null); setVideoFallbackBase64(null)
+    setCropDataUrl(null); setCarouselSlides(null)
   }
 
   async function search(body: { imageBase64?: string; imageUrl?: string; url?: string }) {
@@ -87,7 +90,10 @@ export default function ShopPage() {
         })
         const data = await res.json()
 
-        if (data.videoUrl) {
+        if (data.slides) {
+          // Instagram carousel — let user pick a slide
+          setCarouselSlides(data.slides)
+        } else if (data.videoUrl) {
           setVideoFallbackBase64(data.thumbnailBase64 ?? null)
           // Cobalt tunnel URLs already have CORS — load directly.
           // Other CDN URLs go through our proxy.
@@ -167,6 +173,31 @@ export default function ShopPage() {
     await search({ imageBase64: croppedBase64 })
   }
 
+  async function handleCarouselSelect(slide: CarouselSlide) {
+    setCarouselSlides(null)
+    if (slide.videoUrl) {
+      const isCobalt = slide.videoUrl.includes('cobalt.tools') || slide.videoUrl.includes('co.wuk.sh')
+      setVideoUrl(isCobalt ? slide.videoUrl : `/api/video-proxy?url=${encodeURIComponent(slide.videoUrl)}`)
+    } else if (slide.thumbnailUrl) {
+      setExtracting(true)
+      try {
+        const res = await fetch(`/api/video-proxy?url=${encodeURIComponent(slide.thumbnailUrl)}`)
+        if (res.ok) {
+          const blob = await res.blob()
+          const reader = new FileReader()
+          reader.onload = () => setCropDataUrl(reader.result as string)
+          reader.readAsDataURL(blob)
+        } else {
+          setError("Couldn't load that slide. Try another.")
+        }
+      } catch {
+        setError('Network error. Please check your connection.')
+      } finally {
+        setExtracting(false)
+      }
+    }
+  }
+
   async function handleFrameCapture(imageBase64: string) {
     setVideoUrl(null)
     setVideoFallbackBase64(null)
@@ -188,6 +219,7 @@ export default function ShopPage() {
 
   const isVideoMode = !!videoUrl
   const isCropMode = !!cropDataUrl
+  const isCarouselMode = !!carouselSlides
   const isBusy = loading || saving || extracting
 
   return (
@@ -254,6 +286,15 @@ export default function ShopPage() {
         </div>
       </section>
 
+      {/* Carousel slide picker */}
+      {isCarouselMode && (
+        <CarouselPicker
+          slides={carouselSlides!}
+          onSelect={handleCarouselSelect}
+          onCancel={() => setCarouselSlides(null)}
+        />
+      )}
+
       {/* Image crop selector */}
       {isCropMode && (
         <section className="max-w-2xl mx-auto px-4 py-12">
@@ -313,7 +354,7 @@ export default function ShopPage() {
       )}
 
       {/* Results */}
-      {!isVideoMode && !isCropMode && (
+      {!isVideoMode && !isCropMode && !isCarouselMode && (
         <section className="max-w-6xl mx-auto px-8 py-20 min-h-[40vh]">
           {(loading || saving || extracting) && (
             <div className="flex flex-col items-center justify-center py-28 text-bark-muted">

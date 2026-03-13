@@ -34,7 +34,17 @@ function extractInstagramShortcode(url: string): string | null {
   return url.match(/\/(reel|p|tv)\/([A-Za-z0-9_-]+)/)?.[2] ?? null
 }
 
-async function trySocialDownloader(url: string): Promise<string | null> {
+interface SocialSlide {
+  thumbnailUrl: string | null
+  videoUrl: string | null
+}
+
+interface SocialResult {
+  videoUrl: string | null
+  slides: SocialSlide[] | null
+}
+
+async function trySocialDownloader(url: string): Promise<SocialResult | null> {
   const apiKey = process.env.RAPIDAPI_KEY
   if (!apiKey) return null
 
@@ -54,14 +64,31 @@ async function trySocialDownloader(url: string): Promise<string | null> {
     )
     if (!res.ok) { console.log('rapidapi status:', res.status); return null }
     const data = await res.json()
-    console.log('rapidapi response:', JSON.stringify(data).slice(0, 200))
+    console.log('rapidapi response:', JSON.stringify(data).slice(0, 300))
 
-    // Response: { contents: [{ videos: [{ label, url }] }] }
-    const videos = data?.contents?.[0]?.videos as { label: string; url: string }[] | undefined
-    if (!videos?.length) return null
-    // Prefer 720p, fall back to first available
+    type RawContent = {
+      videos?: { label: string; url: string }[]
+      images?: { url: string; resolution?: string }[]
+    }
+    const contents = data?.contents as RawContent[] | undefined
+    if (!contents?.length) return null
+
+    // Carousel: multiple slides
+    if (contents.length > 1) {
+      const slides: SocialSlide[] = contents.map((c) => {
+        const vids = c.videos ?? []
+        const imgs = c.images ?? []
+        const videoUrl = vids.find(v => v.label === '720p')?.url ?? vids[0]?.url ?? null
+        const thumbnailUrl = imgs[0]?.url ?? null
+        return { thumbnailUrl, videoUrl }
+      })
+      return { videoUrl: null, slides }
+    }
+
+    // Single post (video or image)
+    const videos = contents[0]?.videos ?? []
     const best = videos.find(v => v.label === '720p') ?? videos[0]
-    return best?.url ?? null
+    return { videoUrl: best?.url ?? null, slides: null }
   } catch (e) {
     console.log('rapidapi error:', e)
     return null
@@ -92,13 +119,19 @@ export async function POST(req: NextRequest) {
   const isSocial = /instagram\.com|tiktok\.com/i.test(url)
 
   // Run RapidAPI + Supabase edge in parallel so we stay within Vercel's timeout
-  const [rapidVideoUrl, edgeData] = await Promise.all([
+  const [rapidResult, edgeData] = await Promise.all([
     isSocial ? withTimeout(trySocialDownloader(url), 8_000) : Promise.resolve(null),
     withTimeout(fetchEdge(url), 25_000) as Promise<Record<string, unknown>>,
   ])
 
+  // Carousel — return slides directly, no further processing needed
+  if (rapidResult?.slides) {
+    console.log('carousel detected:', rapidResult.slides.length, 'slides')
+    return NextResponse.json({ slides: rapidResult.slides })
+  }
+
   const edge = edgeData ?? {}
-  const videoUrl = rapidVideoUrl ?? (edge.videoUrl as string | null) ?? null
+  const videoUrl = rapidResult?.videoUrl ?? (edge.videoUrl as string | null) ?? null
 
   // If the edge function couldn't fetch the thumbnail as base64, try here on Vercel
   // (Vercel IPs have better access to social CDN URLs than Supabase cloud IPs)
@@ -107,7 +140,7 @@ export async function POST(req: NextRequest) {
     thumbnailBase64 = await fetchImageBase64(edge.thumbnailUrl as string)
   }
 
-  console.log('video-extract result:', { rapidVideoUrl, edgeVideoUrl: edge.videoUrl, videoUrl, hasThumbnail: !!thumbnailBase64 })
+  console.log('video-extract result:', { rapidVideoUrl: rapidResult?.videoUrl, edgeVideoUrl: edge.videoUrl, videoUrl, hasThumbnail: !!thumbnailBase64 })
 
   return NextResponse.json({
     videoUrl,
