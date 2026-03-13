@@ -56,7 +56,12 @@ export async function POST(req: NextRequest) {
     const searchRes = await fetch(`${SUPABASE_URL}/functions/v1/visual-search`, {
       method: 'POST',
       headers: supabaseHeaders(),
-      body: JSON.stringify({ imageBase64, searchQuery, brand: scrapeData.brand ?? null }),
+      body: JSON.stringify({
+        imageBase64,
+        searchQuery,
+        brand: scrapeData.brand ?? null,
+        description: scrapeData.description ?? null,
+      }),
     })
 
     const results = await searchRes.json()
