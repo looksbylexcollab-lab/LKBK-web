@@ -51,8 +51,8 @@ export default function ShopPage() {
       const data = await res.json()
       if (!res.ok || data.error) setError(data.error ?? 'Something went wrong. Please try again.')
       else setProducts(data.products ?? [])
-    } catch {
-      setError('Something went wrong. Please try again.')
+    } catch (e) {
+      setError('Network error: ' + String(e))
     } finally {
       setLoading(false)
     }

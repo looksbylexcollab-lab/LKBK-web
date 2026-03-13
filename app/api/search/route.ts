@@ -14,6 +14,9 @@ function supabaseHeaders() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return NextResponse.json({ error: 'Server misconfigured: missing Supabase env vars' }, { status: 500 })
+  }
   const body = await req.json()
 
   // ── URL flow: scrape → get image URL → fetch → base64 → visual-search ──────
