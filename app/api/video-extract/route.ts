@@ -34,15 +34,65 @@ function extractInstagramShortcode(url: string): string | null {
   return url.match(/\/(reel|p|tv)\/([A-Za-z0-9_-]+)/)?.[2] ?? null
 }
 
-interface SocialSlide {
+function isCarouselUrl(url: string): boolean {
+  // /p/ posts can be carousels; /reel/ and /tv/ are always single videos
+  return /instagram\.com\/p\//i.test(url)
+}
+
+export interface SocialSlide {
   thumbnailUrl: string | null
   videoUrl: string | null
+}
+
+// Fetch og:image for a specific carousel slide index
+async function fetchSlideOgImage(shortcode: string, imgIndex: number): Promise<string | null> {
+  try {
+    const res = await fetch(`https://www.instagram.com/p/${shortcode}/?img_index=${imgIndex}`, {
+      headers: {
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        'Accept': 'text/html',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      redirect: 'follow',
+    })
+    if (!res.ok) return null
+    const html = await res.text()
+    const match = html.match(/<meta property="og:image" content="([^"]+)"/)
+    return match?.[1] ?? null
+  } catch {
+    return null
+  }
+}
+
+// Extract carousel slides by fetching og:image for each ?img_index
+async function extractCarouselSlides(shortcode: string): Promise<SocialSlide[] | null> {
+  // Fetch first 2 slides in parallel to confirm it's a carousel
+  const [img1, img2] = await Promise.all([
+    fetchSlideOgImage(shortcode, 1),
+    fetchSlideOgImage(shortcode, 2),
+  ])
+
+  if (!img1 || !img2 || img1 === img2) return null // not a carousel
+
+  // Fetch remaining slides (Instagram allows up to 10 per carousel)
+  const remaining = await Promise.all(
+    Array.from({ length: 8 }, (_, i) => fetchSlideOgImage(shortcode, i + 3))
+  )
+
+  const slides: SocialSlide[] = []
+  const seen = new Set<string>()
+  for (const url of [img1, img2, ...remaining]) {
+    if (!url || seen.has(url)) break
+    seen.add(url)
+    slides.push({ thumbnailUrl: url, videoUrl: null })
+  }
+
+  return slides.length > 1 ? slides : null
 }
 
 interface SocialResult {
   videoUrl: string | null
   slides: SocialSlide[] | null
-  debugError?: string
 }
 
 async function trySocialDownloader(url: string): Promise<SocialResult | null> {
@@ -63,22 +113,15 @@ async function trySocialDownloader(url: string): Promise<SocialResult | null> {
         },
       }
     )
-    if (!res.ok) { console.log('rapidapi status:', res.status); return null }
+    if (!res.ok) return null
     const data = await res.json()
-    console.log('rapidapi full response:', JSON.stringify(data).slice(0, 2000))
 
     type RawContent = {
       videos?: { label: string; url: string }[]
       images?: { url: string; resolution?: string }[]
     }
     const contents = data?.contents as RawContent[] | undefined
-    console.log('rapidapi contents count:', contents?.length, 'keys:', Object.keys(data ?? {}))
-    if (!contents?.length) {
-      return { videoUrl: null, slides: null, debugError: 'NO_CONTENTS keys=' + JSON.stringify(Object.keys(data ?? {})) + ' | ' + JSON.stringify(data).slice(0, 600) }
-    }
-
-    // Always surface the full raw response so we can see carousel structure
-    return { videoUrl: null, slides: null, debugError: 'contents.length=' + contents.length + ' | ' + JSON.stringify(data).slice(0, 1000) }
+    if (!contents?.length) return null
 
     // Carousel: multiple slides
     if (contents.length > 1) {
@@ -96,8 +139,7 @@ async function trySocialDownloader(url: string): Promise<SocialResult | null> {
     const videos = contents[0]?.videos ?? []
     const best = videos.find(v => v.label === '720p') ?? videos[0]
     return { videoUrl: best?.url ?? null, slides: null }
-  } catch (e) {
-    console.log('rapidapi error:', e)
+  } catch {
     return null
   }
 }
@@ -124,35 +166,29 @@ export async function POST(req: NextRequest) {
   if (!url) return NextResponse.json({ error: 'url is required' }, { status: 400 })
 
   const isSocial = /instagram\.com|tiktok\.com/i.test(url)
+  const shortcode = extractInstagramShortcode(url)
 
-  // Run RapidAPI + Supabase edge in parallel so we stay within Vercel's timeout
-  const [rapidResult, edgeData] = await Promise.all([
+  // Run all extractions in parallel
+  const [rapidResult, edgeData, carouselSlides] = await Promise.all([
     isSocial ? withTimeout(trySocialDownloader(url), 8_000) : Promise.resolve(null),
     withTimeout(fetchEdge(url), 25_000) as Promise<Record<string, unknown>>,
+    (isCarouselUrl(url) && shortcode) ? withTimeout(extractCarouselSlides(shortcode), 12_000) : Promise.resolve(null),
   ])
 
-  // Surface debug info if API response was unrecognised
-  if (rapidResult?.debugError) {
-    return NextResponse.json({ debugError: rapidResult.debugError })
-  }
-
-  // Carousel — return slides directly, no further processing needed
-  if (rapidResult?.slides) {
-    console.log('carousel detected:', rapidResult.slides.length, 'slides')
-    return NextResponse.json({ slides: rapidResult.slides })
+  // Carousel takes priority — RapidAPI result first, then og:image fallback
+  const slides = rapidResult?.slides ?? carouselSlides
+  if (slides) {
+    console.log('carousel detected:', slides.length, 'slides')
+    return NextResponse.json({ slides })
   }
 
   const edge = edgeData ?? {}
   const videoUrl = rapidResult?.videoUrl ?? (edge.videoUrl as string | null) ?? null
 
-  // If the edge function couldn't fetch the thumbnail as base64, try here on Vercel
-  // (Vercel IPs have better access to social CDN URLs than Supabase cloud IPs)
   let thumbnailBase64 = (edge.thumbnailBase64 as string | null) ?? null
   if (!thumbnailBase64 && edge.thumbnailUrl) {
     thumbnailBase64 = await fetchImageBase64(edge.thumbnailUrl as string)
   }
-
-  console.log('video-extract result:', { rapidVideoUrl: rapidResult?.videoUrl, edgeVideoUrl: edge.videoUrl, videoUrl, hasThumbnail: !!thumbnailBase64 })
 
   return NextResponse.json({
     videoUrl,

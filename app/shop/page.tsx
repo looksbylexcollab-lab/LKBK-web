@@ -89,7 +89,6 @@ export default function ShopPage() {
           body: JSON.stringify({ url: url.trim() }),
         })
         const data = await res.json()
-        if (data.debugError) { setError('DEBUG: ' + data.debugError); return }
 
         if (data.slides) {
           // Instagram carousel — let user pick a slide
