@@ -33,21 +33,35 @@ async function trySocialDownloader(url: string): Promise<string | null> {
   if (!apiKey) return null
   try {
     const res = await fetch(
-      `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(url)}`,
+      `https://instagram-media-downloader.p.rapidapi.com/rapid/post?url=${encodeURIComponent(url)}`,
       {
         headers: {
-          'X-RapidAPI-Key': apiKey,
-          'X-RapidAPI-Host': 'social-media-video-downloader.p.rapidapi.com',
+          'x-rapidapi-key': apiKey,
+          'x-rapidapi-host': 'instagram-media-downloader.p.rapidapi.com',
         },
       }
     )
     if (!res.ok) { console.log('rapidapi status:', res.status); return null }
     const data = await res.json()
-    console.log('rapidapi response:', JSON.stringify(data).slice(0, 300))
-    // Returns { links: [{ link, quality }] } — pick highest quality without watermark
-    const links: { link: string; quality?: string }[] = data?.links ?? []
-    const best = links.find(l => l.quality === 'hd') ?? links.find(l => l.link?.includes('.mp4')) ?? links[0]
-    return best?.link ?? null
+    console.log('rapidapi response:', JSON.stringify(data).slice(0, 400))
+
+    // Handle various response shapes this API returns
+    // Shape 1: { result: { url: "..." } }
+    if (data?.result?.url) return data.result.url as string
+    // Shape 2: { result: [{ url, type }] } — pick video
+    if (Array.isArray(data?.result)) {
+      const vid = data.result.find((r: { type?: string; url?: string }) => r.type === 'video' || r.url?.includes('.mp4'))
+      if (vid?.url) return vid.url as string
+    }
+    // Shape 3: { media: [{ url, type }] }
+    if (Array.isArray(data?.media)) {
+      const vid = data.media.find((r: { type?: string; url?: string }) => r.type === 'video' || r.url?.includes('.mp4'))
+      if (vid?.url) return vid.url as string
+    }
+    // Shape 4: { url: "..." } direct
+    if (data?.url && typeof data.url === 'string') return data.url as string
+
+    return null
   } catch (e) {
     console.log('rapidapi error:', e)
     return null
