@@ -253,7 +253,7 @@ export default function ShopPage() {
 
       {/* Video scrubber */}
       {isVideoMode && (
-        <section className="max-w-sm mx-auto px-4 py-12">
+        <section className="max-w-sm mx-auto pb-12">
           <VideoScrubber
             videoUrl={videoUrl!}
             onCapture={handleFrameCapture}

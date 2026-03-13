@@ -144,14 +144,14 @@ export default function VideoScrubber({ videoUrl, onCapture, onCancel, onVideoEr
     <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
 
       {/* ── Video player ── */}
-      <div className="rounded-2xl overflow-hidden bg-black w-full" style={{ aspectRatio: '9/16', maxHeight: '380px' }}>
+      <div className="bg-black w-full" style={{ aspectRatio: '9/16', maxHeight: '480px' }}>
         <video
           ref={videoRef}
           src={videoUrl}
           playsInline
           muted
           controls
-          className="w-full h-full object-contain"
+          className="w-full h-full object-cover"
         />
       </div>
 
