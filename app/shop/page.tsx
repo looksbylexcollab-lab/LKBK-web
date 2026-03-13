@@ -49,8 +49,10 @@ export default function ShopPage() {
         const { data, error } = await supabase.functions.invoke('visual-search', {
           body: { imageBase64: body.imageBase64 },
         })
-        if (error) setError('Something went wrong. Please try again.')
-        else setProducts(data?.products ?? [])
+        if (error) {
+          const msg = (error as { message?: string })?.message ?? String(error)
+          setError(`Search failed: ${msg}`)
+        } else setProducts(data?.products ?? [])
       } else {
         // URL / imageUrl flows still go through Next.js (need server-side scraping)
         const res = await fetch('/api/search', {
