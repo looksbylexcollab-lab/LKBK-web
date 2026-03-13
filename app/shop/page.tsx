@@ -50,7 +50,11 @@ export default function ShopPage() {
           body: { imageBase64: body.imageBase64 },
         })
         if (error) {
-          const msg = (error as { message?: string })?.message ?? String(error)
+          let msg = (error as { message?: string })?.message ?? String(error)
+          try {
+            const body = await (error as { context?: Response })?.context?.text()
+            if (body) msg += ` — ${body.slice(0, 200)}`
+          } catch { /* ignore */ }
           setError(`Search failed: ${msg}`)
         } else setProducts(data?.products ?? [])
       } else {
