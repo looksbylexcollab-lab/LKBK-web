@@ -176,7 +176,8 @@ export default function ShopPage() {
   async function handleFrameCapture(imageBase64: string) {
     setVideoUrl(null)
     setVideoFallbackBase64(null)
-    await search({ imageBase64 })
+    // Show captured frame in crop selector so user can isolate the specific item
+    setCropDataUrl(`data:image/jpeg;base64,${imageBase64}`)
   }
 
   function handleVideoError() {
