@@ -28,31 +28,28 @@ async function fetchImageBase64(url: string): Promise<string | null> {
   }
 }
 
-async function tryCobalt(url: string): Promise<string | null> {
+async function trySocialDownloader(url: string): Promise<string | null> {
+  const apiKey = process.env.RAPIDAPI_KEY
+  if (!apiKey) return null
   try {
-    const res = await fetch('https://api.cobalt.tools/', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (compatible; LKBK/1.0)',
-      },
-      body: JSON.stringify({ url, videoQuality: '720', filenameStyle: 'basic', downloadMode: 'auto' }),
-    })
-    if (!res.ok) {
-      console.log('cobalt status:', res.status, await res.text().catch(() => ''))
-      return null
-    }
+    const res = await fetch(
+      `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(url)}`,
+      {
+        headers: {
+          'X-RapidAPI-Key': apiKey,
+          'X-RapidAPI-Host': 'social-media-video-downloader.p.rapidapi.com',
+        },
+      }
+    )
+    if (!res.ok) { console.log('rapidapi status:', res.status); return null }
     const data = await res.json()
-    console.log('cobalt response:', JSON.stringify(data).slice(0, 200))
-    if (['stream', 'tunnel', 'redirect'].includes(data.status) && data.url) return data.url as string
-    if (data.status === 'picker' && Array.isArray(data.picker)) {
-      const video = data.picker.find((p: { type?: string; url?: string }) => p.type === 'video' || p.url)
-      return video?.url ?? null
-    }
-    return null
+    console.log('rapidapi response:', JSON.stringify(data).slice(0, 300))
+    // Returns { links: [{ link, quality }] } — pick highest quality without watermark
+    const links: { link: string; quality?: string }[] = data?.links ?? []
+    const best = links.find(l => l.quality === 'hd') ?? links.find(l => l.link?.includes('.mp4')) ?? links[0]
+    return best?.link ?? null
   } catch (e) {
-    console.log('cobalt error:', e)
+    console.log('rapidapi error:', e)
     return null
   }
 }
@@ -80,14 +77,14 @@ export async function POST(req: NextRequest) {
 
   const isSocial = /instagram\.com|tiktok\.com/i.test(url)
 
-  // Run cobalt + Supabase edge in parallel so we stay within Vercel's timeout
-  const [cobaltVideoUrl, edgeData] = await Promise.all([
-    isSocial ? withTimeout(tryCobalt(url), 8_000) : Promise.resolve(null),
+  // Run RapidAPI + Supabase edge in parallel so we stay within Vercel's timeout
+  const [rapidVideoUrl, edgeData] = await Promise.all([
+    isSocial ? withTimeout(trySocialDownloader(url), 8_000) : Promise.resolve(null),
     withTimeout(fetchEdge(url), 25_000) as Promise<Record<string, unknown>>,
   ])
 
   const edge = edgeData ?? {}
-  const videoUrl = cobaltVideoUrl ?? (edge.videoUrl as string | null) ?? null
+  const videoUrl = rapidVideoUrl ?? (edge.videoUrl as string | null) ?? null
 
   // If the edge function couldn't fetch the thumbnail as base64, try here on Vercel
   // (Vercel IPs have better access to social CDN URLs than Supabase cloud IPs)
@@ -96,7 +93,7 @@ export async function POST(req: NextRequest) {
     thumbnailBase64 = await fetchImageBase64(edge.thumbnailUrl as string)
   }
 
-  console.log('video-extract result:', { cobaltVideoUrl, edgeVideoUrl: edge.videoUrl, videoUrl, hasThumbnail: !!thumbnailBase64 })
+  console.log('video-extract result:', { rapidVideoUrl, edgeVideoUrl: edge.videoUrl, videoUrl, hasThumbnail: !!thumbnailBase64 })
 
   return NextResponse.json({
     videoUrl,

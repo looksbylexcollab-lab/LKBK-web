@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const allowed = [
     'cdninstagram.com', 'fbcdn.net', 'tiktokcdn.com', 'tiktokcdn-us.com',
     'tikwm.com', 'akamaized.net', 'llnwd.net', 'instagram.com',
-    'cobalt.tools', 'co.wuk.sh',
+    'cobalt.tools', 'co.wuk.sh', 'rapidapi.com',
   ]
   if (!allowed.some(h => parsed.hostname.endsWith(h))) {
     return new NextResponse('url not allowed', { status: 403 })
