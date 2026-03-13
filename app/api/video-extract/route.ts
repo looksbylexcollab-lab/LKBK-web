@@ -10,6 +10,24 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   ])
 }
 
+async function fetchImageBase64(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+        'Referer': 'https://www.instagram.com/',
+      },
+      redirect: 'follow',
+    })
+    if (!res.ok) return null
+    const buf = await res.arrayBuffer()
+    return Buffer.from(buf).toString('base64')
+  } catch {
+    return null
+  }
+}
+
 async function tryCobalt(url: string): Promise<string | null> {
   try {
     const res = await fetch('https://api.cobalt.tools/', {
@@ -71,12 +89,19 @@ export async function POST(req: NextRequest) {
   const edge = edgeData ?? {}
   const videoUrl = cobaltVideoUrl ?? (edge.videoUrl as string | null) ?? null
 
-  console.log('video-extract result:', { cobaltVideoUrl, edgeVideoUrl: edge.videoUrl, videoUrl })
+  // If the edge function couldn't fetch the thumbnail as base64, try here on Vercel
+  // (Vercel IPs have better access to social CDN URLs than Supabase cloud IPs)
+  let thumbnailBase64 = (edge.thumbnailBase64 as string | null) ?? null
+  if (!thumbnailBase64 && edge.thumbnailUrl) {
+    thumbnailBase64 = await fetchImageBase64(edge.thumbnailUrl as string)
+  }
+
+  console.log('video-extract result:', { cobaltVideoUrl, edgeVideoUrl: edge.videoUrl, videoUrl, hasThumbnail: !!thumbnailBase64 })
 
   return NextResponse.json({
     videoUrl,
     thumbnailUrl: edge.thumbnailUrl ?? null,
-    thumbnailBase64: edge.thumbnailBase64 ?? null,
+    thumbnailBase64,
     title: edge.title ?? null,
   })
 }
