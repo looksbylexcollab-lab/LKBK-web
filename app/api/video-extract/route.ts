@@ -64,13 +64,14 @@ async function trySocialDownloader(url: string): Promise<SocialResult | null> {
     )
     if (!res.ok) { console.log('rapidapi status:', res.status); return null }
     const data = await res.json()
-    console.log('rapidapi response:', JSON.stringify(data).slice(0, 300))
+    console.log('rapidapi full response:', JSON.stringify(data).slice(0, 2000))
 
     type RawContent = {
       videos?: { label: string; url: string }[]
       images?: { url: string; resolution?: string }[]
     }
     const contents = data?.contents as RawContent[] | undefined
+    console.log('rapidapi contents count:', contents?.length, 'keys:', Object.keys(data ?? {}))
     if (!contents?.length) return null
 
     // Carousel: multiple slides
