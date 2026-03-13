@@ -3,9 +3,13 @@ import { NextRequest, NextResponse } from 'next/server'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Try cobalt.tools from Vercel (better IP reputation than Supabase cloud IPs).
-// Cobalt tunnel URLs have Access-Control-Allow-Origin: * so the browser can
-// load them directly in a <video> element without needing our proxy.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ])
+}
+
 async function tryCobalt(url: string): Promise<string | null> {
   try {
     const res = await fetch('https://api.cobalt.tools/', {
@@ -13,29 +17,42 @@ async function tryCobalt(url: string): Promise<string | null> {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'User-Agent': 'LKBK/1.0 (+https://shoplkbk.com)',
+        'User-Agent': 'Mozilla/5.0 (compatible; LKBK/1.0)',
       },
-      body: JSON.stringify({
-        url,
-        videoQuality: '720',
-        filenameStyle: 'basic',
-        downloadMode: 'auto',
-      }),
-      signal: AbortSignal.timeout(20_000),
+      body: JSON.stringify({ url, videoQuality: '720', filenameStyle: 'basic', downloadMode: 'auto' }),
     })
-    if (!res.ok) return null
-    const data = await res.json()
-
-    if (['stream', 'tunnel', 'redirect'].includes(data.status) && data.url) {
-      return data.url as string
+    if (!res.ok) {
+      console.log('cobalt status:', res.status, await res.text().catch(() => ''))
+      return null
     }
+    const data = await res.json()
+    console.log('cobalt response:', JSON.stringify(data).slice(0, 200))
+    if (['stream', 'tunnel', 'redirect'].includes(data.status) && data.url) return data.url as string
     if (data.status === 'picker' && Array.isArray(data.picker)) {
       const video = data.picker.find((p: { type?: string; url?: string }) => p.type === 'video' || p.url)
       return video?.url ?? null
     }
     return null
-  } catch {
+  } catch (e) {
+    console.log('cobalt error:', e)
     return null
+  }
+}
+
+async function fetchEdge(url: string): Promise<Record<string, unknown>> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/video-extract`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ url }),
+    })
+    return res.ok ? await res.json() : {}
+  } catch {
+    return {}
   }
 }
 
@@ -45,32 +62,21 @@ export async function POST(req: NextRequest) {
 
   const isSocial = /instagram\.com|tiktok\.com/i.test(url)
 
-  // For IG/TikTok: try cobalt first (Vercel IPs, less likely to be blocked)
-  let cobaltVideoUrl: string | null = null
-  if (isSocial) {
-    cobaltVideoUrl = await tryCobalt(url)
-  }
+  // Run cobalt + Supabase edge in parallel so we stay within Vercel's timeout
+  const [cobaltVideoUrl, edgeData] = await Promise.all([
+    isSocial ? withTimeout(tryCobalt(url), 8_000) : Promise.resolve(null),
+    withTimeout(fetchEdge(url), 25_000) as Promise<Record<string, unknown>>,
+  ])
 
-  // Always call Supabase edge for thumbnail extraction (and video fallback for non-cobalt)
-  const edgeRes = await fetch(`${SUPABASE_URL}/functions/v1/video-extract`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify({ url }),
-  })
+  const edge = edgeData ?? {}
+  const videoUrl = cobaltVideoUrl ?? (edge.videoUrl as string | null) ?? null
 
-  const edgeData = edgeRes.ok ? await edgeRes.json() : {}
-
-  // Cobalt URL wins over anything the edge function found
-  const videoUrl = cobaltVideoUrl ?? edgeData.videoUrl ?? null
+  console.log('video-extract result:', { cobaltVideoUrl, edgeVideoUrl: edge.videoUrl, videoUrl })
 
   return NextResponse.json({
     videoUrl,
-    thumbnailUrl: edgeData.thumbnailUrl ?? null,
-    thumbnailBase64: edgeData.thumbnailBase64 ?? null,
-    title: edgeData.title ?? null,
+    thumbnailUrl: edge.thumbnailUrl ?? null,
+    thumbnailBase64: edge.thumbnailBase64 ?? null,
+    title: edge.title ?? null,
   })
 }
