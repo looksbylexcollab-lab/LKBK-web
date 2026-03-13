@@ -75,9 +75,11 @@ export default function ShopPage() {
         const data = await res.json()
 
         if (data.videoUrl) {
-          // Proxy through Next.js so browser can load CDN video without CORS issues
           setVideoFallbackBase64(data.thumbnailBase64 ?? null)
-          setVideoUrl(`/api/video-proxy?url=${encodeURIComponent(data.videoUrl)}`)
+          // Cobalt tunnel URLs already have CORS — load directly.
+          // Other CDN URLs go through our proxy.
+          const isCobalt = data.videoUrl.includes('cobalt.tools') || data.videoUrl.includes('co.wuk.sh')
+          setVideoUrl(isCobalt ? data.videoUrl : `/api/video-proxy?url=${encodeURIComponent(data.videoUrl)}`)
         } else if (data.thumbnailBase64) {
           // No playable video, but we have a thumbnail — show crop selector
           // so user can circle the specific item they want to search
