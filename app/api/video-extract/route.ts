@@ -42,6 +42,7 @@ interface SocialSlide {
 interface SocialResult {
   videoUrl: string | null
   slides: SocialSlide[] | null
+  debugError?: string
 }
 
 async function trySocialDownloader(url: string): Promise<SocialResult | null> {
@@ -72,7 +73,9 @@ async function trySocialDownloader(url: string): Promise<SocialResult | null> {
     }
     const contents = data?.contents as RawContent[] | undefined
     console.log('rapidapi contents count:', contents?.length, 'keys:', Object.keys(data ?? {}))
-    if (!contents?.length) return null
+    if (!contents?.length) {
+      return { videoUrl: null, slides: null, debugError: 'keys=' + JSON.stringify(Object.keys(data ?? {})) + ' | ' + JSON.stringify(data).slice(0, 600) }
+    }
 
     // Carousel: multiple slides
     if (contents.length > 1) {
@@ -124,6 +127,11 @@ export async function POST(req: NextRequest) {
     isSocial ? withTimeout(trySocialDownloader(url), 8_000) : Promise.resolve(null),
     withTimeout(fetchEdge(url), 25_000) as Promise<Record<string, unknown>>,
   ])
+
+  // Surface debug info if API response was unrecognised
+  if (rapidResult?.debugError) {
+    return NextResponse.json({ debugError: rapidResult.debugError })
+  }
 
   // Carousel — return slides directly, no further processing needed
   if (rapidResult?.slides) {
