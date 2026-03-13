@@ -115,18 +115,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ imageBase64: body.imageBase64 }),
     })
 
-    const rawText = await searchRes.text()
-    console.log('visual-search status:', searchRes.status, 'body:', rawText.slice(0, 300))
-
-    if (!searchRes.ok) {
-      return NextResponse.json({ error: `Visual search failed (${searchRes.status}): ${rawText.slice(0, 200)}` }, { status: 502 })
-    }
-
-    try {
-      return NextResponse.json(JSON.parse(rawText))
-    } catch {
-      return NextResponse.json({ error: `Bad response from visual search: ${rawText.slice(0, 200)}` }, { status: 502 })
-    }
+    const results = await searchRes.json()
+    return NextResponse.json(results)
   }
 
   return NextResponse.json({ error: 'Provide url or imageBase64' }, { status: 400 })

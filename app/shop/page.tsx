@@ -50,8 +50,7 @@ export default function ShopPage() {
           body: { imageBase64: body.imageBase64 },
         })
         if (error) {
-          const msg = (error as { message?: string })?.message ?? String(error)
-          setError(`Search failed: ${msg}`)
+          setError('Something went wrong. Please try again.')
         } else {
           setProducts(data?.products ?? [])
         }
@@ -65,8 +64,8 @@ export default function ShopPage() {
         if (!res.ok || data.error) setError(data.error ?? 'Something went wrong. Please try again.')
         else setProducts(data.products ?? [])
       }
-    } catch (e) {
-      setError('Network error: ' + String(e))
+    } catch {
+      setError('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
