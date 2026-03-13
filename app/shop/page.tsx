@@ -28,13 +28,14 @@ export default function ShopPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [scrapedProduct, setScrapedProduct] = useState<SaveProduct | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [videoFallbackBase64, setVideoFallbackBase64] = useState<string | null>(null)
   const [extracting, setExtracting] = useState(false)
   const [cropDataUrl, setCropDataUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function resetAll() {
     setProducts(null); setError(null); setScrapedProduct(null)
-    setPreviewUrl(null); setVideoUrl(null); setCropDataUrl(null)
+    setPreviewUrl(null); setVideoUrl(null); setVideoFallbackBase64(null); setCropDataUrl(null)
   }
 
   async function search(body: object) {
@@ -74,12 +75,13 @@ export default function ShopPage() {
         const data = await res.json()
 
         if (data.videoUrl) {
-          // We have a playable video — show scrubber
+          // We have a playable video — show scrubber; keep thumbnail as fallback
+          setVideoFallbackBase64(data.thumbnailBase64 ?? null)
           setVideoUrl(data.videoUrl)
         } else if (data.thumbnailBase64) {
-          // Edge function already fetched the thumbnail — search directly
-          setPreviewUrl(`data:image/jpeg;base64,${data.thumbnailBase64}`)
-          await search({ imageBase64: data.thumbnailBase64 })
+          // No playable video, but we have a thumbnail — show crop selector
+          // so user can circle the specific item they want to search
+          setCropDataUrl(`data:image/jpeg;base64,${data.thumbnailBase64}`)
         } else if (data.thumbnailUrl) {
           // Last resort — try server-side fetch of the URL
           await search({ imageUrl: data.thumbnailUrl })
@@ -152,7 +154,20 @@ export default function ShopPage() {
 
   async function handleFrameCapture(imageBase64: string) {
     setVideoUrl(null)
+    setVideoFallbackBase64(null)
     await search({ imageBase64 })
+  }
+
+  function handleVideoError() {
+    const fallback = videoFallbackBase64
+    setVideoUrl(null)
+    setVideoFallbackBase64(null)
+    if (fallback) {
+      // Show the extracted thumbnail in the crop selector so user can pick the area
+      setCropDataUrl(`data:image/jpeg;base64,${fallback}`)
+    } else {
+      setError("Couldn't play this video. Try uploading a screenshot instead.")
+    }
   }
 
   const isVideoMode = !!videoUrl
@@ -241,6 +256,7 @@ export default function ShopPage() {
             videoUrl={videoUrl!}
             onCapture={handleFrameCapture}
             onCancel={() => setVideoUrl(null)}
+            onVideoError={handleVideoError}
           />
         </section>
       )}

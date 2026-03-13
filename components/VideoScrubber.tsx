@@ -14,9 +14,10 @@ interface VideoScrubberProps {
   videoUrl: string
   onCapture: (imageBase64: string) => void
   onCancel: () => void
+  onVideoError?: () => void
 }
 
-export default function VideoScrubber({ videoUrl, onCapture, onCancel }: VideoScrubberProps) {
+export default function VideoScrubber({ videoUrl, onCapture, onCancel, onVideoError }: VideoScrubberProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const filmstripRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
@@ -27,42 +28,62 @@ export default function VideoScrubber({ videoUrl, onCapture, onCancel }: VideoSc
   const [generating, setGenerating] = useState(true)
   const [capturing, setCapturing] = useState(false)
   const [corsError, setCorsError] = useState(false)
+  const [videoError, setVideoError] = useState(false)
 
   const generateFrames = useCallback(async (video: HTMLVideoElement) => {
     const dur = video.duration
     if (!dur || !isFinite(dur)) { setGenerating(false); return }
 
+    // Try to generate frames using a crossOrigin video clone so canvas isn't tainted
+    const cv = document.createElement('video')
+    cv.crossOrigin = 'anonymous'
+    cv.muted = true
+    cv.playsInline = true
+    cv.src = videoUrl
+
+    const canUseCors = await new Promise<boolean>((resolve) => {
+      cv.onloadedmetadata = () => resolve(true)
+      cv.onerror = () => resolve(false)
+      setTimeout(() => resolve(false), 8000)
+    })
+
+    const source = canUseCors ? cv : video
     const generated: string[] = []
+
     for (let i = 0; i < FRAME_COUNT; i++) {
-      video.currentTime = (i / (FRAME_COUNT - 1)) * dur
+      source.currentTime = (i / (FRAME_COUNT - 1)) * dur
       await new Promise<void>((resolve) => {
-        const h = () => { video.removeEventListener('seeked', h); resolve() }
-        video.addEventListener('seeked', h)
+        const h = () => { source.removeEventListener('seeked', h); resolve() }
+        source.addEventListener('seeked', h)
+        setTimeout(resolve, 2000) // bail after 2s per frame
       })
       const c = document.createElement('canvas')
       c.width = 80; c.height = 60
       try {
-        c.getContext('2d')!.drawImage(video, 0, 0, 80, 60)
+        c.getContext('2d')!.drawImage(source, 0, 0, 80, 60)
         generated.push(c.toDataURL('image/jpeg', 0.6))
       } catch {
-        generated.push('')
+        generated.push('') // tainted — show blank tile, still scrub-able
       }
     }
     video.currentTime = 0
     setFrames(generated)
     setGenerating(false)
-  }, [])
+  }, [videoUrl])
 
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
     const onMeta = () => { setDuration(video.duration); generateFrames(video) }
     const onTime = () => setCurrentTime(video.currentTime)
+    const onError = () => { setVideoError(true); setGenerating(false); onVideoError?.() }
     video.addEventListener('loadedmetadata', onMeta)
     video.addEventListener('timeupdate', onTime)
+    video.addEventListener('error', onError)
     return () => {
       video.removeEventListener('loadedmetadata', onMeta)
       video.removeEventListener('timeupdate', onTime)
+      video.removeEventListener('error', onError)
     }
   }, [generateFrames])
 
@@ -85,13 +106,38 @@ export default function VideoScrubber({ videoUrl, onCapture, onCancel }: VideoSc
     const video = videoRef.current
     if (!video) return
     setCapturing(true)
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth || 1280
-    canvas.height = video.videoHeight || 720
+
+    const targetTime = video.currentTime
+    const w = video.videoWidth || 1280
+    const h = video.videoHeight || 720
+
+    // Attempt capture via a fresh crossOrigin video (needed for canvas read-back)
     try {
-      canvas.getContext('2d')!.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1]
-      onCapture(base64)
+      await new Promise<void>((resolve, reject) => {
+        const cv = document.createElement('video')
+        cv.crossOrigin = 'anonymous'
+        cv.muted = true
+        cv.playsInline = true
+        cv.src = videoUrl
+        cv.onloadedmetadata = () => {
+          cv.currentTime = targetTime
+          cv.onseeked = () => {
+            try {
+              const canvas = document.createElement('canvas')
+              canvas.width = w; canvas.height = h
+              canvas.getContext('2d')!.drawImage(cv, 0, 0, w, h)
+              const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1]
+              onCapture(base64)
+              resolve()
+            } catch {
+              reject(new Error('cors'))
+            }
+          }
+          cv.onerror = () => reject(new Error('cors'))
+        }
+        cv.onerror = () => reject(new Error('cors'))
+        setTimeout(() => reject(new Error('cors')), 15_000)
+      })
     } catch {
       setCorsError(true)
       setCapturing(false)
@@ -107,20 +153,20 @@ export default function VideoScrubber({ videoUrl, onCapture, onCancel }: VideoSc
         <video
           ref={videoRef}
           src={videoUrl}
-          crossOrigin="anonymous"
           playsInline
           muted
+          controls
           className="w-full h-full object-contain"
         />
-        {/* Time badge */}
-        <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-lg font-sans tabular-nums">
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </div>
       </div>
 
       {/* Filmstrip */}
       <div className="px-3 pt-3 pb-1">
-        {generating ? (
+        {videoError ? (
+          <div className="flex items-center justify-center h-16 text-white/40 text-xs font-sans text-center px-2">
+            Video could not load. Try uploading a screenshot instead.
+          </div>
+        ) : generating ? (
           <div className="flex items-center justify-center h-16 gap-2 text-white/40 text-xs font-sans">
             <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -158,21 +204,24 @@ export default function VideoScrubber({ videoUrl, onCapture, onCancel }: VideoSc
           </div>
         )}
 
-        <p className="text-white/40 text-xs text-center mt-2 mb-3 font-sans">
+        <p className="text-white/60 text-xs text-center mt-2 font-sans tabular-nums">
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </p>
+        <p className="text-white/40 text-xs text-center mt-1 mb-3 font-sans">
           Drag the timeline to find the product you want
         </p>
       </div>
 
       {/* Buttons */}
       <div className="px-3 pb-3 space-y-2">
-        {corsError ? (
+        {(corsError || videoError) ? (
           <p className="text-red-400 text-xs text-center font-sans py-2">
             This platform blocks frame capture. Try uploading a screenshot instead.
           </p>
         ) : (
           <button
             onClick={captureFrame}
-            disabled={capturing || generating}
+            disabled={capturing || generating || videoError}
             className="w-full flex items-center justify-center gap-2 bg-white hover:bg-cream-100 disabled:opacity-50 text-bark font-semibold text-sm py-3 rounded-xl transition-colors font-sans"
           >
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
