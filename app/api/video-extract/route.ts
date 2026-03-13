@@ -200,8 +200,9 @@ export async function POST(req: NextRequest) {
     isCarousel ? withTimeout(fetchInstagramJSON(shortcode!), 8_000) : Promise.resolve(null),
   ])
 
-  // Use first available slides source
-  const slides = rapidResult?.slides ?? embedSlides ?? jsonSlides
+  // Use first available slides source (including from edge function)
+  const edgeSlides = (edgeData as Record<string, unknown> & { slides?: SocialSlide[] })?.slides
+  const slides = rapidResult?.slides ?? edgeSlides ?? embedSlides ?? jsonSlides
   if (slides && slides.length > 1) {
     console.log('carousel:', slides.length, 'slides')
     return NextResponse.json({ slides })
