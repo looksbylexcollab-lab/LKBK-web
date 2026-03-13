@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ProductCard from '@/components/ProductCard'
@@ -43,14 +44,27 @@ export default function ShopPage() {
     setError(null)
     setProducts(null)
     try {
-      const res = await fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
-      if (!res.ok || data.error) setError(data.error ?? 'Something went wrong. Please try again.')
-      else setProducts(data.products ?? [])
+      if (body.imageBase64) {
+        // Call Supabase directly — bypasses Vercel's 10s function timeout
+        const { data, error } = await supabase.functions.invoke('visual-search', {
+          body: { imageBase64: body.imageBase64 },
+        })
+        if (error) {
+          const msg = (error as { message?: string })?.message ?? String(error)
+          setError(`Search failed: ${msg}`)
+        } else {
+          setProducts(data?.products ?? [])
+        }
+      } else {
+        const res = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        const data = await res.json()
+        if (!res.ok || data.error) setError(data.error ?? 'Something went wrong. Please try again.')
+        else setProducts(data.products ?? [])
+      }
     } catch (e) {
       setError('Network error: ' + String(e))
     } finally {
