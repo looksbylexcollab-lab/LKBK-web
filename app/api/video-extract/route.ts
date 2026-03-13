@@ -74,8 +74,11 @@ async function trySocialDownloader(url: string): Promise<SocialResult | null> {
     const contents = data?.contents as RawContent[] | undefined
     console.log('rapidapi contents count:', contents?.length, 'keys:', Object.keys(data ?? {}))
     if (!contents?.length) {
-      return { videoUrl: null, slides: null, debugError: 'keys=' + JSON.stringify(Object.keys(data ?? {})) + ' | ' + JSON.stringify(data).slice(0, 600) }
+      return { videoUrl: null, slides: null, debugError: 'NO_CONTENTS keys=' + JSON.stringify(Object.keys(data ?? {})) + ' | ' + JSON.stringify(data).slice(0, 600) }
     }
+
+    // Always surface the full raw response so we can see carousel structure
+    return { videoUrl: null, slides: null, debugError: 'contents.length=' + contents.length + ' | ' + JSON.stringify(data).slice(0, 1000) }
 
     // Carousel: multiple slides
     if (contents.length > 1) {
