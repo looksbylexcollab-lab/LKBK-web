@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ProductCard from '@/components/ProductCard'
@@ -43,33 +44,24 @@ export default function ShopPage() {
     setError(null)
     setProducts(null)
     try {
-      let res: Response
-
       if (body.imageBase64) {
         // Call Supabase directly — bypasses Vercel's 10s function timeout
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        res = await fetch(`${supabaseUrl}/functions/v1/visual-search`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseKey}`,
-            'apikey': supabaseKey,
-          },
-          body: JSON.stringify({ imageBase64: body.imageBase64 }),
+        const { data, error } = await supabase.functions.invoke('visual-search', {
+          body: { imageBase64: body.imageBase64 },
         })
+        if (error) setError('Something went wrong. Please try again.')
+        else setProducts(data?.products ?? [])
       } else {
         // URL / imageUrl flows still go through Next.js (need server-side scraping)
-        res = await fetch('/api/search', {
+        const res = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
+        const data = await res.json()
+        if (!res.ok || data.error) setError(data.error ?? 'Something went wrong. Please try again.')
+        else setProducts(data.products ?? [])
       }
-
-      const data = await res.json()
-      if (!res.ok || data.error) setError(data.error ?? 'Something went wrong. Please try again.')
-      else setProducts(data.products ?? [])
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {

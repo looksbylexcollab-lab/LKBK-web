@@ -156,17 +156,17 @@ export default function VideoScrubber({ videoUrl, onCapture, onCancel, onVideoEr
       </div>
 
       {/* ── Filmstrip + time ── */}
-      <div className="bg-[#1C1916] rounded-2xl px-4 py-3 flex flex-col gap-2">
-        <p className="text-white/50 text-xs uppercase tracking-widest text-center font-sans">
+      <div className="px-4 py-3 flex flex-col gap-2">
+        <p className="text-bark-muted text-xs uppercase tracking-widest text-center font-sans">
           Drag to scrub
         </p>
 
         {videoError ? (
-          <p className="text-white/40 text-xs text-center py-3 font-sans">
+          <p className="text-bark-muted text-xs text-center py-3 font-sans">
             Video could not load. Try uploading a screenshot instead.
           </p>
         ) : generating ? (
-          <div className="flex items-center justify-center gap-2 py-3 text-white/40 text-xs font-sans">
+          <div className="flex items-center justify-center gap-2 py-3 text-bark-muted text-xs font-sans">
             <svg className="animate-spin w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -185,25 +185,25 @@ export default function VideoScrubber({ videoUrl, onCapture, onCancel, onVideoEr
             onTouchMove={onTouchMove}
           >
             {frames.map((src, i) => (
-              <div key={i} className="relative flex-1 overflow-hidden bg-white/10" style={{ aspectRatio: '4/3' }}>
+              <div key={i} className="relative flex-1 overflow-hidden bg-cream-400" style={{ aspectRatio: '4/3' }}>
                 {src
                   ? <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
-                  : <div className="w-full h-full bg-white/5" />
+                  : <div className="w-full h-full bg-cream-300" />
                 }
               </div>
             ))}
             {/* Playhead */}
             <div
-              className="absolute top-0 bottom-0 w-0.5 bg-white pointer-events-none"
+              className="absolute top-0 bottom-0 w-0.5 bg-bark pointer-events-none"
               style={{ left: `${progress}%`, transform: 'translateX(-50%)' }}
             >
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full shadow" />
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full shadow" />
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-bark rounded-full shadow" />
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-bark rounded-full shadow" />
             </div>
           </div>
         )}
 
-        <p className="text-white/60 text-xs text-center tabular-nums font-sans">
+        <p className="text-bark-muted text-xs text-center tabular-nums font-sans">
           {formatTime(currentTime)} / {formatTime(duration)}
         </p>
       </div>
