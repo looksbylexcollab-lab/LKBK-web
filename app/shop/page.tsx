@@ -75,9 +75,9 @@ export default function ShopPage() {
         const data = await res.json()
 
         if (data.videoUrl) {
-          // We have a playable video — show scrubber; keep thumbnail as fallback
+          // Proxy through Next.js so browser can load CDN video without CORS issues
           setVideoFallbackBase64(data.thumbnailBase64 ?? null)
-          setVideoUrl(data.videoUrl)
+          setVideoUrl(`/api/video-proxy?url=${encodeURIComponent(data.videoUrl)}`)
         } else if (data.thumbnailBase64) {
           // No playable video, but we have a thumbnail — show crop selector
           // so user can circle the specific item they want to search
