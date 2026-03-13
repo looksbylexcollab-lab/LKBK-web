@@ -28,40 +28,38 @@ async function fetchImageBase64(url: string): Promise<string | null> {
   }
 }
 
+function extractInstagramShortcode(url: string): string | null {
+  return url.match(/\/(reel|p|tv)\/([A-Za-z0-9_-]+)/)?.[2] ?? null
+}
+
 async function trySocialDownloader(url: string): Promise<string | null> {
   const apiKey = process.env.RAPIDAPI_KEY
   if (!apiKey) return null
+
+  const shortcode = extractInstagramShortcode(url)
+  if (!shortcode) return null
+
   try {
     const res = await fetch(
-      `https://instagram-media-downloader.p.rapidapi.com/rapid/post?url=${encodeURIComponent(url)}`,
+      `https://social-media-video-downloader.p.rapidapi.com/instagram/v3/media/post/details?shortcode=${shortcode}&renderableFormats=720p%2Chighres`,
       {
         headers: {
           'x-rapidapi-key': apiKey,
-          'x-rapidapi-host': 'instagram-media-downloader.p.rapidapi.com',
+          'x-rapidapi-host': 'social-media-video-downloader.p.rapidapi.com',
+          'Content-Type': 'application/json',
         },
       }
     )
     if (!res.ok) { console.log('rapidapi status:', res.status); return null }
     const data = await res.json()
-    console.log('rapidapi response:', JSON.stringify(data).slice(0, 400))
+    console.log('rapidapi response:', JSON.stringify(data).slice(0, 200))
 
-    // Handle various response shapes this API returns
-    // Shape 1: { result: { url: "..." } }
-    if (data?.result?.url) return data.result.url as string
-    // Shape 2: { result: [{ url, type }] } — pick video
-    if (Array.isArray(data?.result)) {
-      const vid = data.result.find((r: { type?: string; url?: string }) => r.type === 'video' || r.url?.includes('.mp4'))
-      if (vid?.url) return vid.url as string
-    }
-    // Shape 3: { media: [{ url, type }] }
-    if (Array.isArray(data?.media)) {
-      const vid = data.media.find((r: { type?: string; url?: string }) => r.type === 'video' || r.url?.includes('.mp4'))
-      if (vid?.url) return vid.url as string
-    }
-    // Shape 4: { url: "..." } direct
-    if (data?.url && typeof data.url === 'string') return data.url as string
-
-    return null
+    // Response: { contents: [{ videos: [{ label, url }] }] }
+    const videos = data?.contents?.[0]?.videos as { label: string; url: string }[] | undefined
+    if (!videos?.length) return null
+    // Prefer 720p, fall back to first available
+    const best = videos.find(v => v.label === '720p') ?? videos[0]
+    return best?.url ?? null
   } catch (e) {
     console.log('rapidapi error:', e)
     return null
