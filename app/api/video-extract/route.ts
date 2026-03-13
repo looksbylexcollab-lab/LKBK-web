@@ -35,7 +35,6 @@ function extractInstagramShortcode(url: string): string | null {
 }
 
 function isCarouselUrl(url: string): boolean {
-  // /p/ posts can be carousels; /reel/ and /tv/ are always single videos
   return /instagram\.com\/p\//i.test(url)
 }
 
@@ -44,50 +43,77 @@ export interface SocialSlide {
   videoUrl: string | null
 }
 
-// Fetch og:image for a specific carousel slide index
-async function fetchSlideOgImage(shortcode: string, imgIndex: number): Promise<string | null> {
+// Parse carousel slides from Instagram embed page HTML
+async function parseInstagramEmbed(shortcode: string): Promise<SocialSlide[] | null> {
   try {
-    const res = await fetch(`https://www.instagram.com/p/${shortcode}/?img_index=${imgIndex}`, {
+    const res = await fetch(`https://www.instagram.com/p/${shortcode}/embed/captioned/`, {
       headers: {
-        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-        'Accept': 'text/html',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
         'Accept-Language': 'en-US,en;q=0.9',
+        'Sec-Fetch-Mode': 'navigate',
+        'Referer': 'https://www.instagram.com/',
       },
       redirect: 'follow',
     })
     if (!res.ok) return null
     const html = await res.text()
-    const match = html.match(/<meta property="og:image" content="([^"]+)"/)
-    return match?.[1] ?? null
+
+    // Strategy 1: find edge_sidecar_to_children JSON array
+    const sidecarMatch = html.match(/"edge_sidecar_to_children"\s*:\s*\{"edges"\s*:\s*(\[[\s\S]+?\])\s*\}/)
+    if (sidecarMatch) {
+      try {
+        const edges = JSON.parse(sidecarMatch[1]) as { node: { display_url?: string; is_video?: boolean; video_url?: string } }[]
+        if (edges.length > 1) {
+          return edges.map(e => ({
+            thumbnailUrl: e.node.display_url ?? null,
+            videoUrl: e.node.is_video ? (e.node.video_url ?? null) : null,
+          }))
+        }
+      } catch { /* try next strategy */ }
+    }
+
+    // Strategy 2: extract all display_url values from JSON
+    const displayUrls = [...html.matchAll(/"display_url"\s*:\s*"([^"]+)"/g)]
+      .map(m => m[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/'))
+      .filter((url, i, arr) => arr.indexOf(url) === i) // dedupe
+    if (displayUrls.length > 1) {
+      return displayUrls.map(url => ({ thumbnailUrl: url, videoUrl: null }))
+    }
+
+    return null
   } catch {
     return null
   }
 }
 
-// Extract carousel slides by fetching og:image for each ?img_index
-async function extractCarouselSlides(shortcode: string): Promise<SocialSlide[] | null> {
-  // Fetch first 2 slides in parallel to confirm it's a carousel
-  const [img1, img2] = await Promise.all([
-    fetchSlideOgImage(shortcode, 1),
-    fetchSlideOgImage(shortcode, 2),
-  ])
-
-  if (!img1 || !img2 || img1 === img2) return null // not a carousel
-
-  // Fetch remaining slides (Instagram allows up to 10 per carousel)
-  const remaining = await Promise.all(
-    Array.from({ length: 8 }, (_, i) => fetchSlideOgImage(shortcode, i + 3))
-  )
-
-  const slides: SocialSlide[] = []
-  const seen = new Set<string>()
-  for (const url of [img1, img2, ...remaining]) {
-    if (!url || seen.has(url)) break
-    seen.add(url)
-    slides.push({ thumbnailUrl: url, videoUrl: null })
+// Try Instagram's ?__a=1 JSON endpoint (works without auth on some posts)
+async function fetchInstagramJSON(shortcode: string): Promise<SocialSlide[] | null> {
+  try {
+    const res = await fetch(`https://www.instagram.com/p/${shortcode}/?__a=1&__d=dis`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*',
+        'X-IG-App-ID': '936619743392459',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': 'https://www.instagram.com/',
+      },
+      redirect: 'follow',
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const media = data?.graphql?.shortcode_media ?? data?.items?.[0]
+    const edges = media?.edge_sidecar_to_children?.edges
+    if (Array.isArray(edges) && edges.length > 1) {
+      return edges.map((e: { node: { display_url?: string; is_video?: boolean; video_url?: string } }) => ({
+        thumbnailUrl: e.node.display_url ?? null,
+        videoUrl: e.node.is_video ? (e.node.video_url ?? null) : null,
+      }))
+    }
+    return null
+  } catch {
+    return null
   }
-
-  return slides.length > 1 ? slides : null
 }
 
 interface SocialResult {
@@ -123,7 +149,6 @@ async function trySocialDownloader(url: string): Promise<SocialResult | null> {
     const contents = data?.contents as RawContent[] | undefined
     if (!contents?.length) return null
 
-    // Carousel: multiple slides
     if (contents.length > 1) {
       const slides: SocialSlide[] = contents.map((c) => {
         const vids = c.videos ?? []
@@ -135,7 +160,6 @@ async function trySocialDownloader(url: string): Promise<SocialResult | null> {
       return { videoUrl: null, slides }
     }
 
-    // Single post (video or image)
     const videos = contents[0]?.videos ?? []
     const best = videos.find(v => v.label === '720p') ?? videos[0]
     return { videoUrl: best?.url ?? null, slides: null }
@@ -167,18 +191,19 @@ export async function POST(req: NextRequest) {
 
   const isSocial = /instagram\.com|tiktok\.com/i.test(url)
   const shortcode = extractInstagramShortcode(url)
+  const isCarousel = isCarouselUrl(url) && !!shortcode
 
-  // Run all extractions in parallel
-  const [rapidResult, edgeData, carouselSlides] = await Promise.all([
+  const [rapidResult, edgeData, embedSlides, jsonSlides] = await Promise.all([
     isSocial ? withTimeout(trySocialDownloader(url), 8_000) : Promise.resolve(null),
     withTimeout(fetchEdge(url), 25_000) as Promise<Record<string, unknown>>,
-    (isCarouselUrl(url) && shortcode) ? withTimeout(extractCarouselSlides(shortcode), 12_000) : Promise.resolve(null),
+    isCarousel ? withTimeout(parseInstagramEmbed(shortcode!), 10_000) : Promise.resolve(null),
+    isCarousel ? withTimeout(fetchInstagramJSON(shortcode!), 8_000) : Promise.resolve(null),
   ])
 
-  // Carousel takes priority — RapidAPI result first, then og:image fallback
-  const slides = rapidResult?.slides ?? carouselSlides
-  if (slides) {
-    console.log('carousel detected:', slides.length, 'slides')
+  // Use first available slides source
+  const slides = rapidResult?.slides ?? embedSlides ?? jsonSlides
+  if (slides && slides.length > 1) {
+    console.log('carousel:', slides.length, 'slides')
     return NextResponse.json({ slides })
   }
 
