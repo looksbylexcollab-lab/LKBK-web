@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Use Edge Runtime so iOS Safari's multiple range requests share a persistent
+// connection — serverless cold-starts cause CDN auth tokens to be rejected
+// on subsequent range requests, breaking video playback on mobile.
+export const runtime = 'edge'
+
 // Proxy social media video URLs through Next.js to avoid CORS restrictions.
 // The browser requests /api/video-proxy?url=... (same-origin) and we fetch
 // the actual CDN URL server-side with the headers CDNs expect.
