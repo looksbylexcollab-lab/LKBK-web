@@ -31,6 +31,7 @@ export default function ShopPage() {
   const [scrapedProduct, setScrapedProduct] = useState<SaveProduct | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [videoFallbackBase64, setVideoFallbackBase64] = useState<string | null>(null)
+  const [videoFallbackThumbUrl, setVideoFallbackThumbUrl] = useState<string | null>(null)
   const [extracting, setExtracting] = useState(false)
   const [cropDataUrl, setCropDataUrl] = useState<string | null>(null)
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[] | null>(null)
@@ -38,7 +39,7 @@ export default function ShopPage() {
 
   function resetAll() {
     setProducts(null); setError(null); setScrapedProduct(null)
-    setPreviewUrl(null); setVideoUrl(null); setVideoFallbackBase64(null)
+    setPreviewUrl(null); setVideoUrl(null); setVideoFallbackBase64(null); setVideoFallbackThumbUrl(null)
     setCropDataUrl(null); setCarouselSlides(null)
   }
 
@@ -95,9 +96,9 @@ export default function ShopPage() {
           setCarouselSlides(data.slides)
         } else if (data.videoUrl) {
           setVideoFallbackBase64(data.thumbnailBase64 ?? null)
-          // Always proxy through our server — iOS Safari needs proper range
-          // request handling and consistent streaming headers.
-          setVideoUrl(`/api/video-proxy?url=${encodeURIComponent(data.videoUrl)}`)
+          setVideoFallbackThumbUrl(data.thumbnailUrl ?? null)
+          const isCobalt = data.videoUrl.includes('cobalt.tools') || data.videoUrl.includes('co.wuk.sh')
+          setVideoUrl(isCobalt ? data.videoUrl : `/api/video-proxy?url=${encodeURIComponent(data.videoUrl)}`)
         } else if (data.thumbnailBase64) {
           // No playable video, but we have a thumbnail — show crop selector
           // so user can circle the specific item they want to search
@@ -217,13 +218,32 @@ export default function ShopPage() {
     setCropDataUrl(`data:image/jpeg;base64,${imageBase64}`)
   }
 
-  function handleVideoError() {
+  async function handleVideoError() {
     const fallback = videoFallbackBase64
+    const thumbUrl = videoFallbackThumbUrl
     setVideoUrl(null)
     setVideoFallbackBase64(null)
+    setVideoFallbackThumbUrl(null)
     if (fallback) {
-      // Show the extracted thumbnail in the crop selector so user can pick the area
       setCropDataUrl(`data:image/jpeg;base64,${fallback}`)
+    } else if (thumbUrl) {
+      // Base64 wasn't available — fetch the thumbnail via proxy and show crop selector
+      setExtracting(true)
+      try {
+        const res = await fetch(`/api/video-proxy?url=${encodeURIComponent(thumbUrl)}`)
+        if (res.ok) {
+          const blob = await res.blob()
+          const reader = new FileReader()
+          reader.onload = () => setCropDataUrl(reader.result as string)
+          reader.readAsDataURL(blob)
+        } else {
+          setError("Couldn't play this video. Try uploading a screenshot instead.")
+        }
+      } catch {
+        setError("Couldn't play this video. Try uploading a screenshot instead.")
+      } finally {
+        setExtracting(false)
+      }
     } else {
       setError("Couldn't play this video. Try uploading a screenshot instead.")
     }
