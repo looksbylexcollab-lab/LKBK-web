@@ -190,19 +190,31 @@ export async function POST(req: NextRequest) {
   const shortcode = extractInstagramShortcode(url)
   const isCarousel = isCarouselUrl(url) && !!shortcode
 
-  const [rapidResult, edgeData, embedSlides, jsonSlides] = await Promise.all([
-    isSocial ? withTimeout(trySocialDownloader(url), 8_000) : Promise.resolve(null),
+  // Step 1: for carousel URLs, race fast slide-detection approaches first
+  // (don't block on the slow edge function — return as soon as we have slides)
+  if (isCarousel) {
+    const [embedSlides, rapidSlides] = await Promise.all([
+      withTimeout(parseInstagramEmbed(shortcode!), 12_000),
+      withTimeout(trySocialDownloader(url), 8_000).then(r => r?.slides ?? null),
+    ])
+    const slides = embedSlides ?? rapidSlides
+    if (slides && slides.length > 1) {
+      return NextResponse.json({ slides })
+    }
+  }
+
+  // Step 2: run edge function + RapidAPI (for video/thumbnail and carousel fallback)
+  const isSocialNonCarousel = isSocial && !isCarousel
+  const [rapidResult, edgeData] = await Promise.all([
+    isSocialNonCarousel ? withTimeout(trySocialDownloader(url), 8_000) : Promise.resolve(null),
     withTimeout(fetchEdge(url), 25_000) as Promise<Record<string, unknown>>,
-    isCarousel ? withTimeout(parseInstagramEmbed(shortcode!), 10_000) : Promise.resolve(null),
-    isCarousel ? withTimeout(fetchInstagramJSON(shortcode!), 8_000) : Promise.resolve(null),
   ])
 
-  // Use first available slides source (including from edge function)
+  // Carousel from edge function (Cobalt picker or Googlebot embed)
   const edgeSlides = (edgeData as Record<string, unknown> & { slides?: SocialSlide[] })?.slides
-  const slides = rapidResult?.slides ?? edgeSlides ?? embedSlides ?? jsonSlides
-  if (slides && slides.length > 1) {
-    console.log('carousel:', slides.length, 'slides')
-    return NextResponse.json({ slides })
+  const fallbackSlides = rapidResult?.slides ?? edgeSlides
+  if (fallbackSlides && fallbackSlides.length > 1) {
+    return NextResponse.json({ slides: fallbackSlides })
   }
 
   const edge = edgeData ?? {}
