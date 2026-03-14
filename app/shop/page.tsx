@@ -286,15 +286,6 @@ export default function ShopPage() {
         </div>
       </section>
 
-      {/* Carousel slide picker */}
-      {isCarouselMode && (
-        <CarouselPicker
-          slides={carouselSlides!}
-          onSelect={handleCarouselSelect}
-          onCancel={() => setCarouselSlides(null)}
-        />
-      )}
-
       {/* Image crop selector */}
       {isCropMode && (
         <section className="max-w-2xl mx-auto px-4 py-12">
@@ -316,6 +307,15 @@ export default function ShopPage() {
             onVideoError={handleVideoError}
           />
         </section>
+      )}
+
+      {/* Carousel slide picker */}
+      {isCarouselMode && (
+        <CarouselPicker
+          slides={carouselSlides!}
+          onSelect={handleCarouselSelect}
+          onCancel={() => setCarouselSlides(null)}
+        />
       )}
 
       {/* Scraped product direct save */}

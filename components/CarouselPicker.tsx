@@ -11,25 +11,36 @@ interface CarouselPickerProps {
   onCancel: () => void
 }
 
+function proxied(url: string | null): string | null {
+  if (!url) return null
+  try {
+    const { hostname } = new URL(url)
+    if (
+      hostname.includes('lookaside.instagram.com') ||
+      hostname.includes('cdninstagram.com') ||
+      hostname.includes('fbcdn.net')
+    ) {
+      return `/api/video-proxy?url=${encodeURIComponent(url)}`
+    }
+  } catch { /* ignore */ }
+  return url
+}
+
 export default function CarouselPicker({ slides, onSelect, onCancel }: CarouselPickerProps) {
   return (
-    <div className="max-w-2xl mx-auto px-8 py-12">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="h-px flex-1 bg-cream-400" />
-        <p className="label-caps">Choose a slide</p>
-        <div className="h-px flex-1 bg-cream-400" />
-      </div>
+    <section className="max-w-sm mx-auto px-4 pb-12">
+      <p className="label-caps text-center mb-6 pt-8">Choose a slide</p>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2">
         {slides.map((slide, i) => (
           <button
             key={i}
             onClick={() => onSelect(slide)}
-            className="relative group aspect-square rounded-2xl overflow-hidden border border-cream-400 bg-cream-200 hover:border-bark transition-colors"
+            className="relative group aspect-square rounded-xl overflow-hidden border border-cream-400 bg-cream-200 hover:border-bark transition-colors"
           >
             {slide.thumbnailUrl ? (
               <img
-                src={slide.thumbnailUrl}
+                src={proxied(slide.thumbnailUrl)!}
                 alt={`Slide ${i + 1}`}
                 className="w-full h-full object-cover"
               />
@@ -52,10 +63,10 @@ export default function CarouselPicker({ slides, onSelect, onCancel }: CarouselP
 
       <button
         onClick={onCancel}
-        className="mt-8 w-full text-bark-muted hover:text-bark text-sm py-2 transition-colors font-sans"
+        className="mt-6 w-full text-bark-muted hover:text-bark text-xs uppercase tracking-widest py-2 transition-colors font-sans"
       >
         Cancel
       </button>
-    </div>
+    </section>
   )
 }
