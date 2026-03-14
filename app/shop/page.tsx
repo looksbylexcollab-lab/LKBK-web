@@ -17,7 +17,7 @@ interface Product extends SaveProduct {
 }
 
 function isVideoUrl(url: string) {
-  return /tiktok\.com|instagram\.com\/(reel|p\/|tv\/)|youtube\.com\/(watch|shorts)|youtu\.be/i.test(url)
+  return /tiktok\.com|instagram\.com.*\/(reel|p|tv)\/|youtube\.com\/(watch|shorts)|youtu\.be/i.test(url)
 }
 
 export default function ShopPage() {
