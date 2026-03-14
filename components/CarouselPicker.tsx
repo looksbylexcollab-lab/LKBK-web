@@ -13,6 +13,23 @@ interface CarouselPickerProps {
   onCancel: () => void
 }
 
+// Route Instagram CDN URLs through our proxy so the browser can load them
+function proxied(url: string | null): string | null {
+  if (!url || url.startsWith('data:') || url.startsWith('blob:')) return url
+  try {
+    const { hostname } = new URL(url)
+    if (
+      hostname.includes('cdninstagram.com') ||
+      hostname.includes('fbcdn.net') ||
+      hostname.includes('lookaside.instagram.com') ||
+      hostname.includes('scontent')
+    ) {
+      return `/api/video-proxy?url=${encodeURIComponent(url)}`
+    }
+  } catch { /* ignore */ }
+  return url
+}
+
 export default function CarouselPicker({ slides, onSelect, onCancel }: CarouselPickerProps) {
   const [index, setIndex] = useState(0)
   const current = slides[index]
@@ -24,7 +41,7 @@ export default function CarouselPicker({ slides, onSelect, onCancel }: CarouselP
         {current.thumbnailUrl ? (
           <img
             key={index}
-            src={current.thumbnailUrl}
+            src={proxied(current.thumbnailUrl)!}
             alt={`Slide ${index + 1}`}
             className="w-full h-full object-cover"
           />
@@ -93,7 +110,7 @@ export default function CarouselPicker({ slides, onSelect, onCancel }: CarouselP
             }`}
           >
             {slide.thumbnailUrl ? (
-              <img src={slide.thumbnailUrl} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+              <img src={proxied(slide.thumbnailUrl)!} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-cream-300 flex items-center justify-center text-bark-subtle text-sm">◇</div>
             )}
