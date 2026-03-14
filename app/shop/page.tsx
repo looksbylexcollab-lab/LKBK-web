@@ -179,6 +179,11 @@ export default function ShopPage() {
       const isCobalt = slide.videoUrl.includes('cobalt.tools') || slide.videoUrl.includes('co.wuk.sh')
       setVideoUrl(isCobalt ? slide.videoUrl : `/api/video-proxy?url=${encodeURIComponent(slide.videoUrl)}`)
     } else if (slide.thumbnailUrl) {
+      // data: URLs are already base64 — use directly
+      if (slide.thumbnailUrl.startsWith('data:')) {
+        setCropDataUrl(slide.thumbnailUrl)
+        return
+      }
       setExtracting(true)
       try {
         const res = await fetch(`/api/video-proxy?url=${encodeURIComponent(slide.thumbnailUrl)}`)

@@ -70,12 +70,19 @@ async function parseInstagramEmbed(shortcode: string): Promise<SocialSlide[] | n
       } catch { /* try next strategy */ }
     }
 
-    // Strategy 2: extract all display_url values from JSON
+    // Strategy 2: extract all display_url values from JSON, fetch as base64
     const displayUrls = [...html.matchAll(/"display_url"\s*:\s*"([^"]+)"/g)]
       .map(m => m[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/'))
       .filter((url, i, arr) => arr.indexOf(url) === i) // dedupe
     if (displayUrls.length > 1) {
-      return displayUrls.map(url => ({ thumbnailUrl: url, videoUrl: null }))
+      const slides = await Promise.all(
+        displayUrls.map(async (url) => {
+          const base64 = await fetchImageBase64(url)
+          return { thumbnailUrl: base64 ? `data:image/jpeg;base64,${base64}` : null, videoUrl: null }
+        })
+      )
+      const loaded = slides.filter(s => s.thumbnailUrl !== null) as SocialSlide[]
+      if (loaded.length > 1) return loaded
     }
 
     return null
