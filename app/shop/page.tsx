@@ -91,14 +91,35 @@ export default function ShopPage() {
         })
         const data = await res.json()
 
+        // Detect mobile — iOS Safari can't stream proxied video reliably
+        const onMobile = /iPhone|iPad|iPod|Android/i.test(navigator?.userAgent ?? '')
+
         if (data.slides) {
           // Instagram carousel — let user pick a slide
           setCarouselSlides(data.slides)
-        } else if (data.videoUrl) {
+        } else if (data.videoUrl && !onMobile) {
+          // Desktop: full video scrubber
           setVideoFallbackBase64(data.thumbnailBase64 ?? null)
           setVideoFallbackThumbUrl(data.thumbnailUrl ?? null)
           const isCobalt = data.videoUrl.includes('cobalt.tools') || data.videoUrl.includes('co.wuk.sh')
           setVideoUrl(isCobalt ? data.videoUrl : `/api/video-proxy?url=${encodeURIComponent(data.videoUrl)}`)
+        } else if (data.videoUrl && onMobile) {
+          // Mobile: skip video player — go straight to thumbnail crop selector
+          if (data.thumbnailBase64) {
+            setCropDataUrl(`data:image/jpeg;base64,${data.thumbnailBase64}`)
+          } else if (data.thumbnailUrl) {
+            const res = await fetch(`/api/video-proxy?url=${encodeURIComponent(data.thumbnailUrl)}`)
+            if (res.ok) {
+              const blob = await res.blob()
+              const reader = new FileReader()
+              reader.onload = () => setCropDataUrl(reader.result as string)
+              reader.readAsDataURL(blob)
+            } else {
+              setError("Couldn't load the post. Try uploading a screenshot instead.")
+            }
+          } else {
+            setError("Couldn't extract a thumbnail. Try uploading a screenshot instead.")
+          }
         } else if (data.thumbnailBase64) {
           // No playable video, but we have a thumbnail — show crop selector
           // so user can circle the specific item they want to search
