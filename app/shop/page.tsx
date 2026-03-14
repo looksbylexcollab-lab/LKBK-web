@@ -104,8 +104,15 @@ export default function ShopPage() {
           // so user can circle the specific item they want to search
           setCropDataUrl(`data:image/jpeg;base64,${data.thumbnailBase64}`)
         } else if (data.thumbnailUrl) {
-          // Last resort — try server-side fetch of the URL
-          await search({ imageUrl: data.thumbnailUrl })
+          // Don't search with Instagram's own branding images (returned when
+          // extraction fails) — they produce "Instagram Account" results.
+          const isIgCarousel = /instagram\.com\/p\//i.test(url.trim())
+          const isIgBranding = /instagram\.com(?!.*cdninstagram)/.test(data.thumbnailUrl)
+          if (isIgCarousel || isIgBranding) {
+            setError("Couldn't load the carousel. Make sure the post is public, or upload a screenshot instead.")
+          } else {
+            await search({ imageUrl: data.thumbnailUrl })
+          }
         } else {
           setError("Couldn't extract a thumbnail from that post. Make sure it's public, or upload a screenshot instead.")
         }
