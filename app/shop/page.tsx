@@ -95,21 +95,21 @@ export default function ShopPage() {
           setCarouselSlides(data.slides)
         } else if (data.videoUrl) {
           setVideoFallbackBase64(data.thumbnailBase64 ?? null)
-          // Cobalt tunnel URLs already have CORS — load directly.
-          // Other CDN URLs go through our proxy.
-          const isCobalt = data.videoUrl.includes('cobalt.tools') || data.videoUrl.includes('co.wuk.sh')
-          setVideoUrl(isCobalt ? data.videoUrl : `/api/video-proxy?url=${encodeURIComponent(data.videoUrl)}`)
+          // Always proxy through our server — iOS Safari needs proper range
+          // request handling and consistent streaming headers.
+          setVideoUrl(`/api/video-proxy?url=${encodeURIComponent(data.videoUrl)}`)
         } else if (data.thumbnailBase64) {
           // No playable video, but we have a thumbnail — show crop selector
           // so user can circle the specific item they want to search
           setCropDataUrl(`data:image/jpeg;base64,${data.thumbnailBase64}`)
         } else if (data.thumbnailUrl) {
-          // Don't search with Instagram's own branding images (returned when
-          // extraction fails) — they produce "Instagram Account" results.
-          const isIgCarousel = /instagram\.com\/p\//i.test(url.trim())
-          const isIgBranding = /instagram\.com(?!.*cdninstagram)/.test(data.thumbnailUrl)
-          if (isIgCarousel || isIgBranding) {
-            setError("Couldn't load the carousel. Make sure the post is public, or upload a screenshot instead.")
+          // Block Instagram's own branding images (logo/profile pages) which
+          // produce "Instagram Account" results. CDN URLs (cdninstagram.com,
+          // fbcdn.net) are real content and should be searched.
+          const thumbHost = (() => { try { return new URL(data.thumbnailUrl).hostname } catch { return '' } })()
+          const isIgBranding = thumbHost === 'www.instagram.com' || thumbHost === 'instagram.com'
+          if (isIgBranding) {
+            setError("Couldn't extract content from that post. Make sure it's public, or upload a screenshot instead.")
           } else {
             await search({ imageUrl: data.thumbnailUrl })
           }
